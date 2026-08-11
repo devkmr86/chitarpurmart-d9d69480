@@ -21,7 +21,6 @@ import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedSellerRouteImport } from './routes/_authenticated/seller'
 import { Route as StoreStoreIdRouteImport } from './routes/store.$storeId'
 import { Route as AuthenticatedOrderOrderIdRouteImport } from './routes/_authenticated/order.$orderId'
-import { Route as ApiPublicBootstrapAdminRouteImport } from './routes/api/public/bootstrap-admin'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -83,11 +82,6 @@ const AuthenticatedOrderOrderIdRoute =
     path: '/order/$orderId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const ApiPublicBootstrapAdminRoute = ApiPublicBootstrapAdminRouteImport.update({
-  id: '/api/public/bootstrap-admin',
-  path: '/api/public/bootstrap-admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -101,7 +95,6 @@ export interface FileRoutesByFullPath {
   '/seller': typeof AuthenticatedSellerRoute
   '/store/$storeId': typeof StoreStoreIdRoute
   '/order/$orderId': typeof AuthenticatedOrderOrderIdRoute
-  '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -115,7 +108,6 @@ export interface FileRoutesByTo {
   '/seller': typeof AuthenticatedSellerRoute
   '/store/$storeId': typeof StoreStoreIdRoute
   '/order/$orderId': typeof AuthenticatedOrderOrderIdRoute
-  '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -131,7 +123,6 @@ export interface FileRoutesById {
   '/_authenticated/seller': typeof AuthenticatedSellerRoute
   '/store/$storeId': typeof StoreStoreIdRoute
   '/_authenticated/order/$orderId': typeof AuthenticatedOrderOrderIdRoute
-  '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -147,7 +138,6 @@ export interface FileRouteTypes {
     | '/seller'
     | '/store/$storeId'
     | '/order/$orderId'
-    | '/api/public/bootstrap-admin'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -161,7 +151,6 @@ export interface FileRouteTypes {
     | '/seller'
     | '/store/$storeId'
     | '/order/$orderId'
-    | '/api/public/bootstrap-admin'
   id:
     | '__root__'
     | '/'
@@ -176,7 +165,6 @@ export interface FileRouteTypes {
     | '/_authenticated/seller'
     | '/store/$storeId'
     | '/_authenticated/order/$orderId'
-    | '/api/public/bootstrap-admin'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -185,7 +173,6 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   CartRoute: typeof CartRoute
   StoreStoreIdRoute: typeof StoreStoreIdRoute
-  ApiPublicBootstrapAdminRoute: typeof ApiPublicBootstrapAdminRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -274,13 +261,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOrderOrderIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/public/bootstrap-admin': {
-      id: '/api/public/bootstrap-admin'
-      path: '/api/public/bootstrap-admin'
-      fullPath: '/api/public/bootstrap-admin'
-      preLoaderRoute: typeof ApiPublicBootstrapAdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -313,7 +293,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   CartRoute: CartRoute,
   StoreStoreIdRoute: StoreStoreIdRoute,
-  ApiPublicBootstrapAdminRoute: ApiPublicBootstrapAdminRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
