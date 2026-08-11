@@ -28,6 +28,15 @@ export const Route = createFileRoute("/_authenticated/seller")({
   component: SellerPanel,
 });
 
+type SellerOrder = {
+  id: string;
+  order_no: string;
+  status: string;
+  placed_at: string;
+  delivery_address: string;
+};
+type SellerLine = { product_name: string; qty: number; line_total: number };
+
 const NEXT: Record<string, { to: string; label: string }> = {
   PLACED: { to: "ACCEPTED", label: "Accept order" },
   ACCEPTED: { to: "PREPARING", label: "Start preparing" },
@@ -77,18 +86,14 @@ function SellerPanel() {
     },
   });
 
-  const orders = Object.values(
-    (orderItems ?? []).reduce<Record<string, { order: Record<string, any>; lines: any[] }>>(
-      (acc, it) => {
-        const o = it.orders as Record<string, any> | null;
-        if (!o) return acc;
-        acc[o.id] ??= { order: o, lines: [] };
-        acc[o.id].lines.push(it);
-        return acc;
-      },
-      {},
-    ),
-  ).sort(
+  const grouped: Record<string, { order: SellerOrder; lines: SellerLine[] }> = {};
+  for (const it of orderItems ?? []) {
+    const o = it.orders as SellerOrder | null;
+    if (!o) continue;
+    const bucket = (grouped[o.id] ??= { order: o, lines: [] });
+    bucket.lines.push(it as unknown as SellerLine);
+  }
+  const orders = Object.values(grouped).sort(
     (a, b) => new Date(b.order.placed_at).getTime() - new Date(a.order.placed_at).getTime(),
   );
 
@@ -104,7 +109,7 @@ function SellerPanel() {
       .from("orders")
       .update({ status: status as never })
       .eq("id", orderId);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     void qc.invalidateQueries({ queryKey: ["seller-orders"] });
     toast.success("Order updated");
   }
@@ -173,7 +178,7 @@ function SellerPanel() {
                     {next ? (
                       <Button
                         className="mt-3 w-full"
-                        onClick={() => advance(order.id as string, next.to)}
+                        onClick={() => advance(order.id, next.to)}
                       >
                         {next.label}
                       </Button>
@@ -241,7 +246,7 @@ function ProductDialog({ storeId, onSaved }: { storeId: string; onSaved: () => v
   });
 
   async function save() {
-    if (!name.trim() || !price) return toast.error("Enter product name and price");
+    if (!name.trim() || !price) { toast.error("Enter product name and price"); return; }
     setSaving(true);
     const { error } = await supabase.from("products").insert({
       store_id: storeId,
@@ -253,7 +258,7 @@ function ProductDialog({ storeId, onSaved }: { storeId: string; onSaved: () => v
       unit_id: unitId || null,
     });
     setSaving(false);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Product added");
     setName("");
     setPrice("");

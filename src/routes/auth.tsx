@@ -45,22 +45,22 @@ function AuthPage() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (!isValidPhone(phone)) return toast.error("Enter a valid 10-digit mobile number");
+    if (!isValidPhone(phone)) { toast.error("Enter a valid 10-digit mobile number"); return; }
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({
       email: phoneToEmail(phone),
       password,
     });
     setLoading(false);
-    if (error) return toast.error("Wrong phone number or password");
+    if (error) { toast.error("Wrong phone number or password"); return; }
     toast.success("Welcome back!");
     void done();
   }
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
-    if (!isValidPhone(phone)) return toast.error("Enter a valid 10-digit mobile number");
-    if (password.length < 6) return toast.error("Password must be at least 6 characters");
+    if (!isValidPhone(phone)) { toast.error("Enter a valid 10-digit mobile number"); return; }
+    if (password.length < 6) { toast.error("Password must be at least 6 characters"); return; }
     setLoading(true);
     const { error } = await supabase.auth.signUp({
       email: phoneToEmail(phone),
@@ -72,11 +72,11 @@ function AuthPage() {
     });
     setLoading(false);
     if (error) {
-      return toast.error(
+      { toast.error(
         error.message.includes("already")
           ? "This number is already registered. Please log in."
           : error.message,
-      );
+      ); return; }
     }
     toast.success("Account created!");
     void done();

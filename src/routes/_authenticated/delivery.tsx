@@ -125,7 +125,7 @@ function DeliveryPanel() {
       .update({ delivery_boy_id: user.id, status: "ASSIGNED" })
       .eq("id", orderId)
       .is("delivery_boy_id", null);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Order assigned to you");
     void qc.invalidateQueries({ queryKey: ["available-orders"] });
     void qc.invalidateQueries({ queryKey: ["my-deliveries"] });
@@ -136,13 +136,13 @@ function DeliveryPanel() {
       .from("orders")
       .update({ status: status as never })
       .eq("id", orderId);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     void qc.invalidateQueries({ queryKey: ["my-deliveries"] });
   }
 
   async function finish(orderId: string) {
     const code = (otp[orderId] ?? "").trim();
-    if (code.length !== 4) return toast.error("Enter the 4-digit OTP from the customer");
+    if (code.length !== 4) { toast.error("Enter the 4-digit OTP from the customer"); return; }
     try {
       await complete({ data: { orderId, otp: code } });
       toast.success("Delivered! Earnings credited.");

@@ -190,10 +190,10 @@ function ApplyDialog({
 
   async function submit() {
     if (role === "SELLER" && (!storeName.trim() || !categoryId || !address.trim())) {
-      return toast.error("Fill store name, category and address");
+      { toast.error("Fill store name, category and address"); return; }
     }
     if (role === "DELIVERY" && (!vehicle.trim() || !docNumber.trim())) {
-      return toast.error("Fill vehicle number and ID document");
+      { toast.error("Fill vehicle number and ID document"); return; }
     }
     setSaving(true);
     const { data: auth } = await supabase.auth.getUser();
@@ -210,7 +210,7 @@ function ApplyDialog({
       id_doc_number: role === "DELIVERY" ? docNumber.trim() : null,
     });
     setSaving(false);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Application submitted for admin approval");
     setOpen(false);
     onDone();

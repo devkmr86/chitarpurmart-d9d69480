@@ -55,8 +55,8 @@ function Checkout() {
   }, [addresses, addressId]);
 
   async function handlePlace() {
-    if (!addressId) return toast.error("Add a delivery address first");
-    if (!cart.items.length) return toast.error("Your cart is empty");
+    if (!addressId) { toast.error("Add a delivery address first"); return; }
+    if (!cart.items.length) { toast.error("Your cart is empty"); return; }
     setPlacing(true);
     try {
       const order = await submit({
@@ -173,7 +173,7 @@ function AddressDialog({ onSaved }: { onSaved: (id: string) => void }) {
   const [landmark, setLandmark] = useState("");
 
   function locate() {
-    if (!navigator.geolocation) return toast.error("Location not supported");
+    if (!navigator.geolocation) { toast.error("Location not supported"); return; }
     navigator.geolocation.getCurrentPosition(
       (p) => setPos({ lat: p.coords.latitude, lng: p.coords.longitude }),
       () => toast.error("Could not fetch your location"),
@@ -181,7 +181,7 @@ function AddressDialog({ onSaved }: { onSaved: (id: string) => void }) {
   }
 
   async function save() {
-    if (!house.trim() || !street.trim()) return toast.error("Fill house and area");
+    if (!house.trim() || !street.trim()) { toast.error("Fill house and area"); return; }
     setSaving(true);
     const { data: auth } = await supabase.auth.getUser();
     const { data, error } = await supabase
@@ -198,7 +198,7 @@ function AddressDialog({ onSaved }: { onSaved: (id: string) => void }) {
       .select("id")
       .single();
     setSaving(false);
-    if (error || !data) return toast.error(error?.message ?? "Could not save address");
+    if (error || !data) { toast.error(error?.message ?? "Could not save address"); return; }
     toast.success("Address saved");
     setOpen(false);
     onSaved(data.id);

@@ -63,8 +63,8 @@ export function PageHeader({
   right,
 }: {
   title: string;
-  subtitle?: string;
-  right?: ReactNode;
+  subtitle?: string | undefined;
+  right?: ReactNode | undefined;
 }) {
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-card/95 px-4 py-3 backdrop-blur">

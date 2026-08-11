@@ -5,19 +5,19 @@ import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap } from "react-
 export type MapMarker = {
   lat: number;
   lng: number;
-  label?: string;
-  kind?: "store" | "home" | "rider";
-  draggable?: boolean;
-  onDragEnd?: (lat: number, lng: number) => void;
+  label?: string | undefined;
+  kind?: "store" | "home" | "rider" | undefined;
+  draggable?: boolean | undefined;
+  onDragEnd?: ((lat: number, lng: number) => void) | undefined;
 };
 
 export type MapViewProps = {
   center: { lat: number; lng: number };
-  zoom?: number;
-  markers?: MapMarker[];
-  path?: Array<[number, number]>;
-  className?: string;
-  onMapClick?: (lat: number, lng: number) => void;
+  zoom?: number | undefined;
+  markers?: MapMarker[] | undefined;
+  path?: Array<[number, number]> | undefined;
+  className?: string | undefined;
+  onMapClick?: ((lat: number, lng: number) => void) | undefined;
 };
 
 const EMOJI: Record<string, string> = { store: "🏪", home: "🏠", rider: "🛵" };
