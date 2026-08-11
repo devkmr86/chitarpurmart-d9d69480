@@ -46,7 +46,11 @@ function Recenter({ lat, lng, zoom }: { lat: number; lng: number; zoom: number }
   return null;
 }
 
-function ClickHandler({ onMapClick }: { onMapClick?: (lat: number, lng: number) => void }) {
+function ClickHandler({
+  onMapClick,
+}: {
+  onMapClick?: ((lat: number, lng: number) => void) | undefined;
+}) {
   const map = useMap();
   useEffect(() => {
     if (!onMapClick) return;
