@@ -142,7 +142,9 @@ export const placeOrder = createServerFn({ method: "POST" })
 
     const { error: itemErr } = await supabase
       .from("order_items")
-      .insert(itemRows.map((r) => ({ ...r, order_id: order.id })));
+      .insert(
+        itemRows.map((r) => ({ ...r, order_id: order.id })) as never,
+      );
     if (itemErr) throw new Error(itemErr.message);
 
     return order;

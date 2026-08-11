@@ -4,7 +4,7 @@ import type { MapViewProps } from "./MapView";
 
 const MapView = lazy(() => import("./MapView"));
 
-function Skeleton({ className }: { className?: string }) {
+function Skeleton({ className }: { className?: string | undefined }) {
   return (
     <div
       className={`${className ?? "h-64 w-full"} animate-pulse rounded-[var(--radius)] bg-muted`}

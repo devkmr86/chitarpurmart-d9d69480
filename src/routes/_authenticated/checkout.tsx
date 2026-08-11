@@ -51,7 +51,7 @@ function Checkout() {
   });
 
   useEffect(() => {
-    if (!addressId && addresses?.length) setAddressId(addresses[0].id);
+    if (!addressId && addresses?.[0]) setAddressId(addresses[0].id);
   }, [addresses, addressId]);
 
   async function handlePlace() {
