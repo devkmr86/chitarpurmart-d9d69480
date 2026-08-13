@@ -27,6 +27,7 @@ import { Route as AuthenticatedAdminOrdersRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAdminPartnersRouteImport } from './routes/_authenticated/admin/partners'
 import { Route as AuthenticatedAdminPayoutsRouteImport } from './routes/_authenticated/admin/payouts'
 import { Route as AuthenticatedAdminPromosRouteImport } from './routes/_authenticated/admin/promos'
+import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
 import { Route as AuthenticatedAdminStoresRouteImport } from './routes/_authenticated/admin/stores'
 import { Route as AuthenticatedOrderOrderIdRouteImport } from './routes/_authenticated/order.$orderId'
 
@@ -125,6 +126,12 @@ const AuthenticatedAdminPromosRoute =
     path: '/promos',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminSettingsRoute =
+  AuthenticatedAdminSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminStoresRoute =
   AuthenticatedAdminStoresRouteImport.update({
     id: '/stores',
@@ -155,6 +162,7 @@ export interface FileRoutesByFullPath {
   '/admin/partners': typeof AuthenticatedAdminPartnersRoute
   '/admin/payouts': typeof AuthenticatedAdminPayoutsRoute
   '/admin/promos': typeof AuthenticatedAdminPromosRoute
+  '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/stores': typeof AuthenticatedAdminStoresRoute
   '/order/$orderId': typeof AuthenticatedOrderOrderIdRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
@@ -175,6 +183,7 @@ export interface FileRoutesByTo {
   '/admin/partners': typeof AuthenticatedAdminPartnersRoute
   '/admin/payouts': typeof AuthenticatedAdminPayoutsRoute
   '/admin/promos': typeof AuthenticatedAdminPromosRoute
+  '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/stores': typeof AuthenticatedAdminStoresRoute
   '/order/$orderId': typeof AuthenticatedOrderOrderIdRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -198,6 +207,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/partners': typeof AuthenticatedAdminPartnersRoute
   '/_authenticated/admin/payouts': typeof AuthenticatedAdminPayoutsRoute
   '/_authenticated/admin/promos': typeof AuthenticatedAdminPromosRoute
+  '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/stores': typeof AuthenticatedAdminStoresRoute
   '/_authenticated/order/$orderId': typeof AuthenticatedOrderOrderIdRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
@@ -221,6 +231,7 @@ export interface FileRouteTypes {
     | '/admin/partners'
     | '/admin/payouts'
     | '/admin/promos'
+    | '/admin/settings'
     | '/admin/stores'
     | '/order/$orderId'
     | '/admin/'
@@ -241,6 +252,7 @@ export interface FileRouteTypes {
     | '/admin/partners'
     | '/admin/payouts'
     | '/admin/promos'
+    | '/admin/settings'
     | '/admin/stores'
     | '/order/$orderId'
     | '/admin'
@@ -263,6 +275,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/partners'
     | '/_authenticated/admin/payouts'
     | '/_authenticated/admin/promos'
+    | '/_authenticated/admin/settings'
     | '/_authenticated/admin/stores'
     | '/_authenticated/order/$orderId'
     | '/_authenticated/admin/'
@@ -404,6 +417,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminPromosRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/settings': {
+      id: '/_authenticated/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/stores': {
       id: '/_authenticated/admin/stores'
       path: '/stores'
@@ -428,6 +448,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminPartnersRoute: typeof AuthenticatedAdminPartnersRoute
   AuthenticatedAdminPayoutsRoute: typeof AuthenticatedAdminPayoutsRoute
   AuthenticatedAdminPromosRoute: typeof AuthenticatedAdminPromosRoute
+  AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminStoresRoute: typeof AuthenticatedAdminStoresRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
 }
@@ -440,6 +461,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminPartnersRoute: AuthenticatedAdminPartnersRoute,
     AuthenticatedAdminPayoutsRoute: AuthenticatedAdminPayoutsRoute,
     AuthenticatedAdminPromosRoute: AuthenticatedAdminPromosRoute,
+    AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
     AuthenticatedAdminStoresRoute: AuthenticatedAdminStoresRoute,
     AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   }
