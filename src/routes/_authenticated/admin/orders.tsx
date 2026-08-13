@@ -139,7 +139,7 @@ function OrdersMaster() {
               {closed ? null : (
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <Select
-                    value={o.delivery_boy_id ?? undefined}
+                    {...(o.delivery_boy_id ? { value: o.delivery_boy_id } : {})}
                     onValueChange={(v) => void reassign(o.id, v)}
                   >
                     <SelectTrigger className="w-52">
