@@ -486,6 +486,32 @@ export type Database = {
           },
         ]
       }
+      store_contacts: {
+        Row: {
+          phone: string | null
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          phone?: string | null
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          phone?: string | null
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_contacts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_relocation_requests: {
         Row: {
           created_at: string
@@ -546,7 +572,6 @@ export type Database = {
           is_active: boolean
           latitude: number
           longitude: number
-          phone: string | null
           rating: number
           seller_id: string | null
           store_name: string
@@ -560,7 +585,6 @@ export type Database = {
           is_active?: boolean
           latitude?: number
           longitude?: number
-          phone?: string | null
           rating?: number
           seller_id?: string | null
           store_name: string
@@ -574,7 +598,6 @@ export type Database = {
           is_active?: boolean
           latitude?: number
           longitude?: number
-          phone?: string | null
           rating?: number
           seller_id?: string | null
           store_name?: string
