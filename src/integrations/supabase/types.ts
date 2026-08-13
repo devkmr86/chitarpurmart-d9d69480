@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      banners: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string | null
+          is_active: boolean
+          link_url: string | null
+          sort_order: number
+          subtitle: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          link_url?: string | null
+          sort_order?: number
+          subtitle?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          link_url?: string | null
+          sort_order?: number
+          subtitle?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           commission_pct: number
@@ -116,6 +152,36 @@ export type Database = {
           latitude?: number
           longitude?: number
           street_area?: string
+        }
+        Relationships: []
+      }
+      delivery_cash_settlements: {
+        Row: {
+          amount: number
+          created_at: string
+          delivery_boy_id: string
+          id: string
+          note: string | null
+          settled_at: string
+          transaction_id: string | null
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          delivery_boy_id: string
+          id?: string
+          note?: string | null
+          settled_at?: string
+          transaction_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          delivery_boy_id?: string
+          id?: string
+          note?: string | null
+          settled_at?: string
+          transaction_id?: string | null
         }
         Relationships: []
       }
@@ -512,6 +578,59 @@ export type Database = {
           },
         ]
       }
+      store_payouts: {
+        Row: {
+          amount: number
+          commission_amount: number
+          created_at: string
+          id: string
+          note: string | null
+          paid_at: string | null
+          period_end: string | null
+          period_start: string | null
+          status: string
+          store_id: string
+          transaction_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          commission_amount?: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          paid_at?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          status?: string
+          store_id: string
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          commission_amount?: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          paid_at?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          status?: string
+          store_id?: string
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_payouts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_relocation_requests: {
         Row: {
           created_at: string
@@ -566,6 +685,7 @@ export type Database = {
         Row: {
           address_line: string
           category_id: string | null
+          commission_pct: number | null
           created_at: string
           id: string
           image_url: string | null
@@ -575,10 +695,12 @@ export type Database = {
           rating: number
           seller_id: string | null
           store_name: string
+          store_status: string
         }
         Insert: {
           address_line?: string
           category_id?: string | null
+          commission_pct?: number | null
           created_at?: string
           id?: string
           image_url?: string | null
@@ -588,10 +710,12 @@ export type Database = {
           rating?: number
           seller_id?: string | null
           store_name: string
+          store_status?: string
         }
         Update: {
           address_line?: string
           category_id?: string | null
+          commission_pct?: number | null
           created_at?: string
           id?: string
           image_url?: string | null
@@ -601,6 +725,7 @@ export type Database = {
           rating?: number
           seller_id?: string | null
           store_name?: string
+          store_status?: string
         }
         Relationships: [
           {
