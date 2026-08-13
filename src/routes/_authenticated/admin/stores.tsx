@@ -47,9 +47,15 @@ function StoresPage() {
     },
   });
 
-  async function update(id: string, patch: Record<string, unknown>) {
+  async function update(
+    id: string,
+    patch: { store_status?: string; is_active?: boolean; commission_pct?: number | null },
+  ) {
     const { error } = await supabase.from("stores").update(patch).eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("Store updated");
     void qc.invalidateQueries({ queryKey: ["admin-stores"] });
   }
