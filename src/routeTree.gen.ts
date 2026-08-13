@@ -21,6 +21,7 @@ import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedSellerRouteImport } from './routes/_authenticated/seller'
 import { Route as StoreStoreIdRouteImport } from './routes/store.$storeId'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
+import { Route as AuthenticatedAdminApprovalsRouteImport } from './routes/_authenticated/admin/approvals'
 import { Route as AuthenticatedOrderOrderIdRouteImport } from './routes/_authenticated/order.$orderId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -82,6 +83,12 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAdminRouteRoute,
 } as any)
+const AuthenticatedAdminApprovalsRoute =
+  AuthenticatedAdminApprovalsRouteImport.update({
+    id: '/approvals',
+    path: '/approvals',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedOrderOrderIdRoute =
   AuthenticatedOrderOrderIdRouteImport.update({
     id: '/order/$orderId',
@@ -100,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AuthenticatedProfileRoute
   '/seller': typeof AuthenticatedSellerRoute
   '/store/$storeId': typeof StoreStoreIdRoute
+  '/admin/approvals': typeof AuthenticatedAdminApprovalsRoute
   '/order/$orderId': typeof AuthenticatedOrderOrderIdRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
 }
@@ -113,6 +121,7 @@ export interface FileRoutesByTo {
   '/profile': typeof AuthenticatedProfileRoute
   '/seller': typeof AuthenticatedSellerRoute
   '/store/$storeId': typeof StoreStoreIdRoute
+  '/admin/approvals': typeof AuthenticatedAdminApprovalsRoute
   '/order/$orderId': typeof AuthenticatedOrderOrderIdRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
 }
@@ -129,6 +138,7 @@ export interface FileRoutesById {
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/seller': typeof AuthenticatedSellerRoute
   '/store/$storeId': typeof StoreStoreIdRoute
+  '/_authenticated/admin/approvals': typeof AuthenticatedAdminApprovalsRoute
   '/_authenticated/order/$orderId': typeof AuthenticatedOrderOrderIdRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
 }
@@ -145,6 +155,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/seller'
     | '/store/$storeId'
+    | '/admin/approvals'
     | '/order/$orderId'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
@@ -158,6 +169,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/seller'
     | '/store/$storeId'
+    | '/admin/approvals'
     | '/order/$orderId'
     | '/admin'
   id:
@@ -173,6 +185,7 @@ export interface FileRouteTypes {
     | '/_authenticated/profile'
     | '/_authenticated/seller'
     | '/store/$storeId'
+    | '/_authenticated/admin/approvals'
     | '/_authenticated/order/$orderId'
     | '/_authenticated/admin/'
   fileRoutesById: FileRoutesById
@@ -271,6 +284,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/approvals': {
+      id: '/_authenticated/admin/approvals'
+      path: '/approvals'
+      fullPath: '/admin/approvals'
+      preLoaderRoute: typeof AuthenticatedAdminApprovalsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/order/$orderId': {
       id: '/_authenticated/order/$orderId'
       path: '/order/$orderId'
@@ -282,11 +302,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAdminRouteRouteChildren {
+  AuthenticatedAdminApprovalsRoute: typeof AuthenticatedAdminApprovalsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
 }
 
 const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren =
   {
+    AuthenticatedAdminApprovalsRoute: AuthenticatedAdminApprovalsRoute,
     AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   }
 
