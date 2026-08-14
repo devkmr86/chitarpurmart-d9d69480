@@ -10,6 +10,7 @@ import {
   Wallet,
   Ticket,
   Settings,
+  Landmark,
   Menu,
   LogOut,
   ShieldCheck,
@@ -31,6 +32,7 @@ export const ADMIN_NAV: NavItem[] = [
   { to: "/admin/catalog", label: "Catalog & Categories", icon: Boxes },
   { to: "/admin/payouts", label: "Payouts & Commission", icon: Wallet },
   { to: "/admin/promos", label: "Coupons & Banners", icon: Ticket },
+  { to: "/admin/bank", label: "Bank & Settlement", icon: Landmark },
   { to: "/admin/settings", label: "System Settings", icon: Settings },
 ];
 
