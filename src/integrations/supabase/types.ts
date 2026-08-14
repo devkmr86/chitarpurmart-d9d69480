@@ -14,6 +14,119 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_bank_accounts: {
+        Row: {
+          account_holder: string
+          account_number: string
+          bank_name: string
+          created_at: string
+          id: string
+          ifsc: string
+          is_primary: boolean
+          updated_at: string
+          upi_id: string
+        }
+        Insert: {
+          account_holder?: string
+          account_number?: string
+          bank_name?: string
+          created_at?: string
+          id?: string
+          ifsc?: string
+          is_primary?: boolean
+          updated_at?: string
+          upi_id?: string
+        }
+        Update: {
+          account_holder?: string
+          account_number?: string
+          bank_name?: string
+          created_at?: string
+          id?: string
+          ifsc?: string
+          is_primary?: boolean
+          updated_at?: string
+          upi_id?: string
+        }
+        Relationships: []
+      }
+      admin_settlements: {
+        Row: {
+          amount: number
+          bank_account_id: string | null
+          completed_at: string | null
+          created_at: string
+          id: string
+          note: string | null
+          requested_at: string
+          status: string
+          updated_at: string
+          utr: string | null
+        }
+        Insert: {
+          amount: number
+          bank_account_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          requested_at?: string
+          status?: string
+          updated_at?: string
+          utr?: string | null
+        }
+        Update: {
+          amount?: number
+          bank_account_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          requested_at?: string
+          status?: string
+          updated_at?: string
+          utr?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_settlements_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bank_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          details: Json
+          entity: string
+          entity_id: string | null
+          id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          details?: Json
+          entity: string
+          entity_id?: string | null
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          details?: Json
+          entity?: string
+          entity_id?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
       banners: {
         Row: {
           created_at: string
@@ -56,6 +169,7 @@ export type Database = {
           created_at: string
           icon: string
           id: string
+          image_url: string | null
           is_active: boolean
           name: string
           sort_order: number
@@ -65,6 +179,7 @@ export type Database = {
           created_at?: string
           icon?: string
           id?: string
+          image_url?: string | null
           is_active?: boolean
           name: string
           sort_order?: number
@@ -74,6 +189,7 @@ export type Database = {
           created_at?: string
           icon?: string
           id?: string
+          image_url?: string | null
           is_active?: boolean
           name?: string
           sort_order?: number
@@ -185,6 +301,39 @@ export type Database = {
         }
         Relationships: []
       }
+      delivery_incentives: {
+        Row: {
+          bonus_amount: number
+          created_at: string
+          id: string
+          is_active: boolean
+          orders_required: number
+          period: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          bonus_amount?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          orders_required?: number
+          period?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          bonus_amount?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          orders_required?: number
+          period?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       delivery_location_logs: {
         Row: {
           battery_level: number | null
@@ -229,6 +378,39 @@ export type Database = {
           },
         ]
       }
+      delivery_payout_slabs: {
+        Row: {
+          base_pay: number
+          created_at: string
+          id: string
+          is_active: boolean
+          max_km: number
+          min_km: number
+          per_km: number
+          updated_at: string
+        }
+        Insert: {
+          base_pay?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_km: number
+          min_km?: number
+          per_km?: number
+          updated_at?: string
+        }
+        Update: {
+          base_pay?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_km?: number
+          min_km?: number
+          per_km?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       delivery_profiles: {
         Row: {
           cash_in_hand: number
@@ -261,6 +443,89 @@ export type Database = {
           vehicle_number?: string | null
         }
         Relationships: []
+      }
+      delivery_slabs: {
+        Row: {
+          charge: number
+          created_at: string
+          id: string
+          is_active: boolean
+          max_km: number
+          min_km: number
+          updated_at: string
+        }
+        Insert: {
+          charge?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_km: number
+          min_km?: number
+          updated_at?: string
+        }
+        Update: {
+          charge?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_km?: number
+          min_km?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      order_disputes: {
+        Row: {
+          created_at: string
+          customer_id: string
+          details: string | null
+          id: string
+          order_id: string
+          reason: string
+          refund_amount: number
+          refund_mode: string | null
+          resolution_note: string | null
+          resolved_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          details?: string | null
+          id?: string
+          order_id: string
+          reason: string
+          refund_amount?: number
+          refund_mode?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          details?: string | null
+          id?: string
+          order_id?: string
+          reason?: string
+          refund_amount?: number
+          refund_mode?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_disputes_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       order_items: {
         Row: {
@@ -468,6 +733,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_status: string
           created_at: string
           full_name: string
           id: string
@@ -475,6 +741,7 @@ export type Database = {
           status: Database["public"]["Enums"]["approval_status"]
         }
         Insert: {
+          account_status?: string
           created_at?: string
           full_name?: string
           id: string
@@ -482,6 +749,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["approval_status"]
         }
         Update: {
+          account_status?: string
           created_at?: string
           full_name?: string
           id?: string
@@ -551,6 +819,83 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      seller_offers: {
+        Row: {
+          created_at: string
+          ends_at: string | null
+          id: string
+          is_active: boolean
+          note: string | null
+          promo_commission_pct: number
+          starts_at: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          note?: string | null
+          promo_commission_pct?: number
+          starts_at?: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          note?: string | null
+          promo_commission_pct?: number
+          starts_at?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_offers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shop_types: {
+        Row: {
+          created_at: string
+          icon: string
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          icon?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          icon?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       store_contacts: {
         Row: {
@@ -694,6 +1039,7 @@ export type Database = {
           longitude: number
           rating: number
           seller_id: string | null
+          shop_type_id: string | null
           store_name: string
           store_status: string
         }
@@ -709,6 +1055,7 @@ export type Database = {
           longitude?: number
           rating?: number
           seller_id?: string | null
+          shop_type_id?: string | null
           store_name: string
           store_status?: string
         }
@@ -724,6 +1071,7 @@ export type Database = {
           longitude?: number
           rating?: number
           seller_id?: string | null
+          shop_type_id?: string | null
           store_name?: string
           store_status?: string
         }
@@ -733,6 +1081,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stores_shop_type_id_fkey"
+            columns: ["shop_type_id"]
+            isOneToOne: false
+            referencedRelation: "shop_types"
             referencedColumns: ["id"]
           },
         ]
