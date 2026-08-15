@@ -7,6 +7,7 @@ import { AdminLayout, AdminCard } from "@/components/admin/AdminLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { logAdminAction } from "@/lib/admin-audit";
 import {
   Select,
   SelectContent,
@@ -30,6 +31,7 @@ export const Route = createFileRoute("/_authenticated/admin/stores")({
 });
 
 const STATUSES = ["OPEN", "CLOSED", "SUSPENDED"] as const;
+const ACCOUNT_STATES = ["ACTIVE", "PAUSED", "BANNED"] as const;
 
 function StoresPage() {
   const qc = useQueryClient();
@@ -41,8 +43,22 @@ function StoresPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("stores")
-        .select("id,store_name,address_line,is_active,store_status,commission_pct,rating,categories(name)")
+        .select("id,seller_id,store_name,address_line,is_active,store_status,commission_pct,rating,categories(name)")
         .order("store_name");
+      return data ?? [];
+    },
+  });
+
+  const sellerIds = (stores ?? []).map((s) => s.seller_id).filter((x): x is string => !!x);
+
+  const { data: sellers } = useQuery({
+    queryKey: ["admin-store-sellers", sellerIds.join(",")],
+    enabled: sellerIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id,full_name,phone,account_status")
+        .in("id", sellerIds);
       return data ?? [];
     },
   });
@@ -57,7 +73,19 @@ function StoresPage() {
       return;
     }
     toast.success("Store updated");
+    void logAdminAction("STORE_UPDATE", "stores", id, patch as Record<string, unknown>);
     void qc.invalidateQueries({ queryKey: ["admin-stores"] });
+  }
+
+  async function setSellerStatus(sellerId: string, status: string) {
+    const { error } = await supabase.from("profiles").update({ account_status: status }).eq("id", sellerId);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`Seller ${status.toLowerCase()}`);
+    void logAdminAction("SELLER_MODERATION", "profiles", sellerId, { account_status: status });
+    void qc.invalidateQueries({ queryKey: ["admin-store-sellers"] });
   }
 
   const list = (stores ?? []).filter((s) =>
@@ -75,6 +103,7 @@ function StoresPage() {
       <div className="grid gap-3 lg:grid-cols-2">
         {list.map((s) => {
           const status = s.store_status;
+          const seller = (sellers ?? []).find((p) => p.id === s.seller_id);
           return (
             <AdminCard key={s.id}>
               <div className="flex items-start justify-between gap-2">
@@ -129,6 +158,25 @@ function StoresPage() {
               <p className="mt-2 text-[11px] text-muted-foreground">
                 Leave commission blank to use the category default.
               </p>
+
+              {seller ? (
+                <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+                  <span className="text-xs text-muted-foreground">
+                    Seller: {seller.full_name || seller.phone}
+                  </span>
+                  <Select
+                    value={seller.account_status}
+                    onValueChange={(v) => void setSellerStatus(seller.id, v)}
+                  >
+                    <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {ACCOUNT_STATES.map((st) => (
+                        <SelectItem key={st} value={st}>{st}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : null}
             </AdminCard>
           );
         })}
