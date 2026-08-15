@@ -8,6 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { inr } from "@/lib/mannu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { logAdminAction } from "@/lib/admin-audit";
 
 export const Route = createFileRoute("/_authenticated/admin/partners")({
   head: () => ({
@@ -24,6 +32,7 @@ export const Route = createFileRoute("/_authenticated/admin/partners")({
 });
 
 const BUSY = ["ASSIGNED", "PICKED_UP", "ON_THE_WAY"];
+const ACCOUNT_STATES = ["ACTIVE", "PAUSED", "BANNED"] as const;
 
 function PartnersPage() {
   const qc = useQueryClient();
@@ -41,7 +50,7 @@ function PartnersPage() {
       const dps = dpRes.data ?? [];
       const ids = dps.map((d) => d.user_id);
       const profRes = ids.length
-        ? await supabase.from("profiles").select("id,full_name,phone").in("id", ids)
+        ? await supabase.from("profiles").select("id,full_name,phone,account_status").in("id", ids)
         : { data: [] };
       const profiles = new Map((profRes.data ?? []).map((p) => [p.id, p]));
       const busy = new Set((activeRes.data ?? []).map((o) => o.delivery_boy_id));
@@ -49,10 +58,22 @@ function PartnersPage() {
         ...d,
         name: profiles.get(d.user_id)?.full_name || "Partner",
         phone: profiles.get(d.user_id)?.phone ?? "",
+        account_status: profiles.get(d.user_id)?.account_status ?? "ACTIVE",
         state: busy.has(d.user_id) ? "ON DELIVERY" : d.is_online ? "ONLINE" : "OFFLINE",
       }));
     },
   });
+
+  async function setAccountStatus(userId: string, status: string) {
+    const { error } = await supabase.from("profiles").update({ account_status: status }).eq("id", userId);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`Partner ${status.toLowerCase()}`);
+    void logAdminAction("PARTNER_MODERATION", "profiles", userId, { account_status: status });
+    void qc.invalidateQueries({ queryKey: ["admin-partners"] });
+  }
 
   const { data: settlements } = useQuery({
     queryKey: ["admin-cash-settlements"],
@@ -132,6 +153,17 @@ function PartnersPage() {
               <Button size="sm" onClick={() => void settle(p.user_id, Number(p.cash_in_hand))}>
                 Settle cash
               </Button>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+              <span className="text-xs text-muted-foreground">Account</span>
+              <Select value={p.account_status} onValueChange={(v) => void setAccountStatus(p.user_id, v)}>
+                <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {ACCOUNT_STATES.map((st) => (
+                    <SelectItem key={st} value={st}>{st}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </AdminCard>
         ))}
