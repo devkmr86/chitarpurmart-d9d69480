@@ -494,12 +494,6 @@ function Catalog() {
                         )
                       }
                     />
-                    <MoneyInput
-                      className="w-28"
-                      value={String(p.price)}
-                      onChange={() => undefined}
-                      placeholder="Price"
-                    />
                     <Input
                       className="w-24"
                       type="number"
