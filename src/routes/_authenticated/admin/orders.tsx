@@ -14,6 +14,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { inr, STATUS_LABEL } from "@/lib/mannu";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { logAdminAction } from "@/lib/admin-audit";
 
 export const Route = createFileRoute("/_authenticated/admin/orders")({
   head: () => ({
@@ -41,6 +44,8 @@ const FILTERS: { key: string; label: string; statuses: string[] }[] = [
 function OrdersMaster() {
   const qc = useQueryClient();
   const [filter, setFilter] = useState("ALL");
+  const [refund, setRefund] = useState<Record<string, string>>({});
+  const [note, setNote] = useState<Record<string, string>>({});
 
   const { data: orders } = useQuery({
     queryKey: ["admin-orders-master", filter],
@@ -102,8 +107,53 @@ function OrdersMaster() {
     void qc.invalidateQueries({ queryKey: ["admin-orders-master"] });
   }
 
+  const { data: disputes } = useQuery({
+    queryKey: ["admin-disputes"],
+    refetchInterval: 20000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("order_disputes")
+        .select("*, orders(order_no,total,payment_mode)")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      return data ?? [];
+    },
+  });
+
+  async function resolveDispute(
+    id: string,
+    status: "RESOLVED" | "REJECTED",
+    mode: "WALLET" | "BANK" | null,
+    amount: number,
+  ) {
+    const { error } = await supabase
+      .from("order_disputes")
+      .update({
+        status,
+        refund_amount: status === "RESOLVED" ? amount : 0,
+        refund_mode: status === "RESOLVED" ? mode : null,
+        resolution_note: note[id] ?? null,
+        resolved_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(status === "RESOLVED" ? `Refund issued to ${mode?.toLowerCase()}` : "Dispute rejected");
+    void logAdminAction("DISPUTE_" + status, "order_disputes", id, { amount, mode });
+    void qc.invalidateQueries({ queryKey: ["admin-disputes"] });
+  }
+
   return (
     <AdminLayout title="Orders Master" subtitle="Every order across the platform">
+      <Tabs defaultValue="orders">
+        <TabsList className="mb-4 grid w-full max-w-sm grid-cols-2">
+          <TabsTrigger value="orders">Orders</TabsTrigger>
+          <TabsTrigger value="disputes">Disputes & refunds</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="orders">
       <div className="mb-4 flex flex-wrap gap-2">
         {FILTERS.map((f) => (
           <Button
@@ -168,6 +218,83 @@ function OrdersMaster() {
           </p>
         ) : null}
       </div>
+        </TabsContent>
+
+        <TabsContent value="disputes" className="space-y-3">
+          {(disputes ?? []).map((d) => {
+            const open = d.status === "OPEN" || d.status === "PENDING";
+            const orderTotal = Number(d.orders?.total ?? 0);
+            return (
+              <AdminCard key={d.id}>
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-semibold">{d.orders?.order_no ?? "Order"} · {d.reason}</p>
+                    <p className="text-xs text-muted-foreground">{d.details ?? "No extra details"}</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Raised {new Date(d.created_at).toLocaleString("en-IN")} · Order value {inr(orderTotal)}
+                    </p>
+                  </div>
+                  <Badge variant={open ? "default" : "secondary"}>{d.status}</Badge>
+                </div>
+
+                {open ? (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <Input
+                      type="number"
+                      className="w-28"
+                      placeholder="Refund ₹"
+                      value={refund[d.id] ?? String(orderTotal)}
+                      onChange={(e) => setRefund((r) => ({ ...r, [d.id]: e.target.value }))}
+                    />
+                    <Input
+                      className="w-52"
+                      placeholder="Resolution note"
+                      value={note[d.id] ?? ""}
+                      onChange={(e) => setNote((n) => ({ ...n, [d.id]: e.target.value }))}
+                    />
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        void resolveDispute(d.id, "RESOLVED", "WALLET", Number(refund[d.id] ?? orderTotal) || 0)
+                      }
+                    >
+                      Refund to wallet
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        void resolveDispute(d.id, "RESOLVED", "BANK", Number(refund[d.id] ?? orderTotal) || 0)
+                      }
+                    >
+                      Refund to bank
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => void resolveDispute(d.id, "REJECTED", null, 0)}
+                    >
+                      Reject
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {Number(d.refund_amount) > 0
+                      ? `Refunded ${inr(Number(d.refund_amount))} via ${d.refund_mode}`
+                      : "No refund issued"}
+                    {d.resolution_note ? ` · ${d.resolution_note}` : ""}
+                  </p>
+                )}
+              </AdminCard>
+            );
+          })}
+          {!disputes?.length ? (
+            <p className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+              No customer disputes raised.
+            </p>
+          ) : null}
+        </TabsContent>
+      </Tabs>
     </AdminLayout>
   );
 }
