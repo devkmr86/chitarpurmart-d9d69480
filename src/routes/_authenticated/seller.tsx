@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Package, Plus } from "lucide-react";
+import { Loader2, Package, Plus, BellRing, Coffee, IndianRupee } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell, PageHeader } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { inr, STATUS_LABEL } from "@/lib/mannu";
+import { requestStorePayout } from "@/lib/mannu.functions";
+import { useServerFn } from "@tanstack/react-start";
+import { startOrderAlarm } from "@/lib/sound";
+
+const OOS_KEY = "mannu-oos";
 
 export const Route = createFileRoute("/_authenticated/seller")({
   head: () => ({
@@ -46,6 +51,9 @@ const NEXT: Record<string, { to: string; label: string }> = {
 function SellerPanel() {
   const { user, roles } = useAuth();
   const qc = useQueryClient();
+  const payout = useServerFn(requestStorePayout);
+  const stopAlarm = useRef<(() => void) | null>(null);
+  const [muted, setMuted] = useState(false);
 
   const { data: store, isLoading } = useQuery({
     queryKey: ["my-store", user?.id],
@@ -97,6 +105,69 @@ function SellerPanel() {
     (a, b) => new Date(b.order.placed_at).getTime() - new Date(a.order.placed_at).getTime(),
   );
 
+  const newOrders = orders.filter((o) => o.order.status === "PLACED").length;
+
+  // Loud repeating alert until every new order is accepted
+  useEffect(() => {
+    stopAlarm.current?.();
+    stopAlarm.current = null;
+    if (newOrders > 0 && !muted) stopAlarm.current = startOrderAlarm();
+    return () => stopAlarm.current?.();
+  }, [newOrders, muted]);
+
+  // "Aaj ke liye khatam" auto-resets next day
+  useEffect(() => {
+    if (typeof window === "undefined" || !store) return;
+    const raw = window.localStorage.getItem(OOS_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw) as { day: string; ids: string[] };
+    const today = new Date().toDateString();
+    if (saved.day === today || !saved.ids.length) return;
+    void supabase
+      .from("products")
+      .update({ is_available: true })
+      .in("id", saved.ids)
+      .then(() => {
+        window.localStorage.removeItem(OOS_KEY);
+        void qc.invalidateQueries({ queryKey: ["seller-products"] });
+      });
+  }, [store, qc]);
+
+  async function markOutForToday(productId: string) {
+    await supabase.from("products").update({ is_available: false }).eq("id", productId);
+    const today = new Date().toDateString();
+    const raw = window.localStorage.getItem(OOS_KEY);
+    const saved = raw ? (JSON.parse(raw) as { day: string; ids: string[] }) : { day: today, ids: [] };
+    const ids = saved.day === today ? [...new Set([...saved.ids, productId])] : [productId];
+    window.localStorage.setItem(OOS_KEY, JSON.stringify({ day: today, ids }));
+    toast.success("Aaj ke liye khatam — kal apne aap wapas aa jayega");
+    void qc.invalidateQueries({ queryKey: ["seller-products"] });
+  }
+
+  async function takeBreak() {
+    if (!store) return;
+    await supabase.from("stores").update({ is_active: false }).eq("id", store.id);
+    void qc.invalidateQueries({ queryKey: ["my-store"] });
+    toast.success("30 minute ka break shuru — dukan apne aap khul jayegi");
+    window.setTimeout(
+      async () => {
+        await supabase.from("stores").update({ is_active: true }).eq("id", store.id);
+        void qc.invalidateQueries({ queryKey: ["my-store"] });
+      },
+      30 * 60 * 1000,
+    );
+  }
+
+  async function askPayout() {
+    if (!store) return;
+    try {
+      const res = await payout({ data: { storeId: store.id } });
+      toast.success(`Payout request bhej di — ${inr(res.amount)}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Payout request fail ho gayi");
+    }
+  }
+
   async function toggleStore(active: boolean) {
     if (!store) return;
     await supabase.from("stores").update({ is_active: active }).eq("id", store.id);
@@ -134,7 +205,7 @@ function SellerPanel() {
           store ? (
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">
-                {store.is_active ? "Open" : "Closed"}
+                {store.is_active ? "Dukan Khuli Hai" : "Dukan Band Hai"}
               </span>
               <Switch checked={store.is_active} onCheckedChange={toggleStore} />
             </div>
@@ -156,6 +227,19 @@ function SellerPanel() {
             </TabsList>
 
             <TabsContent value="orders" className="mt-4 space-y-3">
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" className="gap-1" onClick={() => void takeBreak()}>
+                  <Coffee className="size-4" /> 30 Minute ka Break
+                </Button>
+                <Button variant="outline" size="sm" className="gap-1" onClick={() => void askPayout()}>
+                  <IndianRupee className="size-4" /> Paisa Nikalein
+                </Button>
+                {newOrders > 0 ? (
+                  <Button size="sm" variant="secondary" className="gap-1" onClick={() => setMuted((m) => !m)}>
+                    <BellRing className="size-4" /> {muted ? "Ringtone ON karein" : "Ringtone band karein"}
+                  </Button>
+                ) : null}
+              </div>
               {orders.map(({ order, lines }) => {
                 const next = NEXT[order.status as string];
                 return (
@@ -217,6 +301,11 @@ function SellerPanel() {
                       void qc.invalidateQueries({ queryKey: ["seller-products"] });
                     }}
                   />
+                  {p.is_available ? (
+                    <Button size="sm" variant="ghost" onClick={() => void markOutForToday(p.id)}>
+                      Aaj ke liye Khatam
+                    </Button>
+                  ) : null}
                 </div>
               ))}
             </TabsContent>

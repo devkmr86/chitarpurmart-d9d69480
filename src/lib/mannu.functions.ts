@@ -5,7 +5,7 @@ import { distanceKm, chargeForDistance, type DeliverySlab } from "@/lib/mannu";
 
 const placeOrderInput = z.object({
   addressId: z.string().uuid(),
-  paymentMode: z.enum(["COD", "ONLINE"]).default("COD"),
+  paymentMode: z.enum(["COD", "ONLINE", "WALLET"]).default("COD"),
   couponCode: z.string().trim().max(24).optional(),
   items: z
     .array(z.object({ productId: z.string().uuid(), qty: z.number().min(1).max(50) }))
@@ -150,6 +150,53 @@ export const placeOrder = createServerFn({ method: "POST" })
     return order;
   });
 
+/** Debits the customer wallet for a wallet-paid order. */
+export const payOrderFromWallet = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ orderId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: order } = await supabase
+      .from("orders")
+      .select("id,customer_id,total,payment_mode")
+      .eq("id", data.orderId)
+      .maybeSingle();
+    if (!order || order.customer_id !== userId) throw new Error("Order not found");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: paid } = await supabaseAdmin
+      .from("wallet_transactions")
+      .select("id")
+      .eq("order_id", order.id)
+      .eq("kind", "PAYMENT")
+      .maybeSingle();
+    if (paid) return { ok: true };
+
+    const { data: wallet } = await supabaseAdmin
+      .from("wallets")
+      .select("balance")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const balance = Number(wallet?.balance ?? 0);
+    const amount = Number(order.total);
+    if (balance < amount) throw new Error("Wallet me paise kam hain");
+
+    await supabaseAdmin
+      .from("wallets")
+      .upsert(
+        { user_id: userId, balance: balance - amount, updated_at: new Date().toISOString() },
+        { onConflict: "user_id" },
+      );
+    await supabaseAdmin.from("wallet_transactions").insert({
+      user_id: userId,
+      amount: -amount,
+      kind: "PAYMENT",
+      note: "Order payment",
+      order_id: order.id,
+    });
+    return { ok: true };
+  });
+
 export const reviewRoleRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
@@ -188,6 +235,9 @@ export const reviewRoleRequest = createServerFn({ method: "POST" })
           address_line: req.address_line ?? "",
           latitude: req.latitude ?? 23.3441,
           longitude: req.longitude ?? 85.3096,
+          fssai_number: req.fssai_number,
+          fssai_doc_url: req.fssai_doc_url,
+          is_verified: Boolean(req.fssai_number),
         });
       }
       if (req.requested_role === "DELIVERY") {
@@ -274,4 +324,112 @@ export const completeDelivery = createServerFn({ method: "POST" })
     );
 
     return { ok: true };
+  });
+
+/** Credits a customer's wallet and cancels the order (admin only). */
+export const refundToWallet = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        orderId: z.string().uuid(),
+        amount: z.number().positive().max(100000).optional(),
+        note: z.string().trim().max(200).optional(),
+        cancelOrder: z.boolean().default(true),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: isAdmin } = await supabase.rpc("is_admin");
+    if (!isAdmin) throw new Error("Forbidden");
+
+    const { data: order } = await supabase
+      .from("orders")
+      .select("id,customer_id,total,status")
+      .eq("id", data.orderId)
+      .maybeSingle();
+    if (!order) throw new Error("Order not found");
+
+    const amount = Math.round((data.amount ?? Number(order.total)) * 100) / 100;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: wallet } = await supabaseAdmin
+      .from("wallets")
+      .select("balance")
+      .eq("user_id", order.customer_id)
+      .maybeSingle();
+
+    await supabaseAdmin.from("wallets").upsert(
+      {
+        user_id: order.customer_id,
+        balance: Number(wallet?.balance ?? 0) + amount,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" },
+    );
+    await supabaseAdmin.from("wallet_transactions").insert({
+      user_id: order.customer_id,
+      amount,
+      kind: "REFUND",
+      note: data.note ?? "Order refund",
+      order_id: order.id,
+    });
+    if (data.cancelOrder && order.status !== "CANCELLED") {
+      await supabaseAdmin.from("orders").update({ status: "CANCELLED" }).eq("id", order.id);
+    }
+    return { ok: true, amount };
+  });
+
+/** Seller requests a payout of their pending balance. */
+export const requestStorePayout = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ storeId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: store } = await supabase
+      .from("stores")
+      .select("id,seller_id,commission_pct")
+      .eq("id", data.storeId)
+      .maybeSingle();
+    if (!store || store.seller_id !== userId) throw new Error("Not your store");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: settings } = await supabaseAdmin
+      .from("business_settings")
+      .select("commission_pct,min_payout_limit")
+      .limit(1)
+      .maybeSingle();
+
+    const commissionPct = Number(store.commission_pct ?? settings?.commission_pct ?? 10);
+    const minLimit = Number(settings?.min_payout_limit ?? 200);
+
+    const { data: items } = await supabaseAdmin
+      .from("order_items")
+      .select("line_total, orders(status)")
+      .eq("store_id", store.id);
+    const delivered = (items ?? []).filter(
+      (i) => (i.orders as { status?: string } | null)?.status === "DELIVERED",
+    );
+    const gross = delivered.reduce((s, i) => s + Number(i.line_total), 0);
+
+    const { data: paid } = await supabaseAdmin
+      .from("store_payouts")
+      .select("amount")
+      .eq("store_id", store.id)
+      .neq("status", "REJECTED");
+    const alreadyRequested = (paid ?? []).reduce((s, p) => s + Number(p.amount), 0);
+
+    const commission = Math.round((gross * commissionPct) / 100);
+    const net = Math.round(gross - commission - alreadyRequested);
+    if (net < minLimit)
+      throw new Error(`Minimum payout ₹${minLimit} chahiye. Abhi balance ₹${Math.max(0, net)} hai.`);
+
+    await supabaseAdmin.from("store_payouts").insert({
+      store_id: store.id,
+      amount: net,
+      commission_amount: commission,
+      status: "PENDING",
+    });
+    return { ok: true, amount: net };
   });

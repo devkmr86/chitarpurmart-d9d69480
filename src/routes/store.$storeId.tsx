@@ -20,6 +20,7 @@ import {
 import { useCart, type CartItem } from "@/hooks/useCart";
 import { inr } from "@/lib/mannu";
 import { Map } from "@/components/app/Map";
+import { BrandFooter } from "@/components/app/Tagline";
 
 export const Route = createFileRoute("/store/$storeId")({
   head: () => ({
@@ -182,6 +183,18 @@ function StorePage() {
             );
           })}
         </section>
+
+        <section className="mt-6 rounded-2xl border border-border bg-card p-4 text-center">
+          {store?.is_verified ? (
+            <Badge variant="secondary" className="mb-1">Verified store</Badge>
+          ) : null}
+          <p className="text-[11px] text-muted-foreground">
+            {store?.fssai_number
+              ? `License No. ${store.fssai_number}`
+              : "FSSAI license number not provided by this store."}
+          </p>
+        </section>
+        <BrandFooter />
       </main>
 
       {cart.count > 0 ? (

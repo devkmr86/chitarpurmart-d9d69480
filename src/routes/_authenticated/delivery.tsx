@@ -3,17 +3,21 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Bike, IndianRupee, Loader2, Wallet } from "lucide-react";
+import { Bike, IndianRupee, Loader2, Wallet, QrCode } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell, PageHeader } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { inr, STATUS_LABEL } from "@/lib/mannu";
 import { completeDelivery } from "@/lib/mannu.functions";
+import { useBusiness, upiIntent } from "@/hooks/useBusiness";
+import { playRadarPing, playSuccessChime } from "@/lib/sound";
 
 export const Route = createFileRoute("/_authenticated/delivery")({
   head: () => ({
@@ -33,6 +37,7 @@ function DeliveryPanel() {
   const complete = useServerFn(completeDelivery);
   const [otp, setOtp] = useState<Record<string, string>>({});
   const watchRef = useRef<number | null>(null);
+  const lastCount = useRef(0);
 
   const { data: dp } = useQuery({
     queryKey: ["delivery-profile", user?.id],
@@ -78,6 +83,13 @@ function DeliveryPanel() {
   const activeIds = (mine ?? [])
     .filter((o) => o.status !== "DELIVERED" && o.status !== "CANCELLED")
     .map((o) => o.id);
+
+  // Radar chime when a new task appears
+  const availableCount = available?.length ?? 0;
+  useEffect(() => {
+    if (availableCount > lastCount.current) playRadarPing();
+    lastCount.current = availableCount;
+  }, [availableCount]);
 
   // Share live GPS while online and carrying orders
   const online = dp?.is_online ?? false;
@@ -145,6 +157,7 @@ function DeliveryPanel() {
     if (code.length !== 4) { toast.error("Enter the 4-digit OTP from the customer"); return; }
     try {
       await complete({ data: { orderId, otp: code } });
+      playSuccessChime();
       toast.success("Delivered! Earnings credited.");
       void qc.invalidateQueries({ queryKey: ["my-deliveries"] });
       void qc.invalidateQueries({ queryKey: ["delivery-profile"] });
@@ -176,6 +189,8 @@ function DeliveryPanel() {
           <Stat icon={IndianRupee} label="Total earnings" value={inr(dp?.total_earnings ?? 0)} />
           <Stat icon={Wallet} label="Cash in hand" value={inr(dp?.cash_in_hand ?? 0)} />
         </div>
+
+        <CashSettlement cash={Number(dp?.cash_in_hand ?? 0)} userId={user?.id} />
 
         <Tabs defaultValue="available">
           <TabsList className="grid w-full grid-cols-2">
@@ -275,5 +290,117 @@ function Stat({
       <p className="mt-2 text-xs text-muted-foreground">{label}</p>
       <p className="font-display text-lg font-bold">{value}</p>
     </div>
+  );
+}
+
+/** Floating COD cash tracker with UPI intent + admin QR fallback. */
+function CashSettlement({ cash, userId }: { cash: number; userId: string | undefined }) {
+  const qc = useQueryClient();
+  const { business, brand } = useBusiness();
+  const [open, setOpen] = useState(false);
+  const [amount, setAmount] = useState("");
+  const [utr, setUtr] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function submit() {
+    const amt = Number(amount);
+    if (!userId || !amt || amt <= 0) {
+      toast.error("Sahi amount daalein");
+      return;
+    }
+    if (!utr.trim()) {
+      toast.error("UTR / transaction ID daalein");
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase.from("delivery_cash_settlements").insert({
+      delivery_boy_id: userId,
+      amount: amt,
+      transaction_id: utr.trim(),
+      note: "Rider self settlement",
+    });
+    if (!error) {
+      const { data: dp } = await supabase
+        .from("delivery_profiles")
+        .select("cash_in_hand")
+        .eq("user_id", userId)
+        .maybeSingle();
+      await supabase
+        .from("delivery_profiles")
+        .update({ cash_in_hand: Math.max(0, Number(dp?.cash_in_hand ?? 0) - amt) })
+        .eq("user_id", userId);
+    }
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Cash jama record ho gaya");
+    setOpen(false);
+    setAmount("");
+    setUtr("");
+    void qc.invalidateQueries({ queryKey: ["delivery-profile"] });
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="w-full justify-between gap-2">
+          <span className="flex items-center gap-2">
+            <Wallet className="size-4" /> Company ko Cash Jama Karein
+          </span>
+          <span className="font-display font-bold">{inr(cash)}</span>
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Cash Jama Karein</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Amount</Label>
+            <Input
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder={String(cash)}
+            />
+          </div>
+          {business?.upi_id ? (
+            <a
+              className="block w-full rounded-xl bg-primary px-4 py-3 text-center text-sm font-semibold text-primary-foreground"
+              href={upiIntent({
+                upiId: business.upi_id,
+                name: brand,
+                amount: Number(amount) || cash,
+                note: "COD settlement",
+              })}
+            >
+              UPI app se pay karein
+            </a>
+          ) : null}
+          {business?.qr_image_url ? (
+            <div className="rounded-xl border border-border p-3 text-center">
+              <p className="mb-2 flex items-center justify-center gap-1 text-xs text-muted-foreground">
+                <QrCode className="size-3.5" /> Admin QR scan karein
+              </p>
+              <img
+                src={business.qr_image_url}
+                alt={`${brand} settlement QR`}
+                className="mx-auto size-44 rounded-lg object-contain"
+                loading="lazy"
+              />
+            </div>
+          ) : null}
+          <div>
+            <Label className="text-xs">UTR / Transaction ID</Label>
+            <Input value={utr} onChange={(e) => setUtr(e.target.value)} />
+          </div>
+          <Button className="w-full" onClick={() => void submit()} disabled={saving}>
+            {saving ? <Loader2 className="size-4 animate-spin" /> : "Submit karein"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -14,6 +14,7 @@ import {
   Menu,
   LogOut,
   ShieldCheck,
+  Building2,
   type LucideIcon,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -25,6 +26,7 @@ type NavItem = { to: string; label: string; icon: LucideIcon };
 
 export const ADMIN_NAV: NavItem[] = [
   { to: "/admin", label: "Dashboard Analytics", icon: BarChart3 },
+  { to: "/admin/business", label: "Business Command Center", icon: Building2 },
   { to: "/admin/approvals", label: "Approvals & Onboarding", icon: UserCheck },
   { to: "/admin/stores", label: "Stores Management", icon: Store },
   { to: "/admin/partners", label: "Delivery Partners", icon: Bike },

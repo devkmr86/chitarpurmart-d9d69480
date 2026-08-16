@@ -163,8 +163,70 @@ export type Database = {
         }
         Relationships: []
       }
+      business_settings: {
+        Row: {
+          about_text: string | null
+          base_delivery_charge: number
+          brand_name: string
+          commission_pct: number
+          created_at: string
+          fssai_number: string | null
+          id: string
+          min_payout_limit: number
+          per_km_rate: number
+          qr_image_url: string | null
+          singleton: boolean
+          support_email: string | null
+          support_phone: string | null
+          tagline: string
+          udyam_number: string | null
+          updated_at: string
+          upi_id: string | null
+        }
+        Insert: {
+          about_text?: string | null
+          base_delivery_charge?: number
+          brand_name?: string
+          commission_pct?: number
+          created_at?: string
+          fssai_number?: string | null
+          id?: string
+          min_payout_limit?: number
+          per_km_rate?: number
+          qr_image_url?: string | null
+          singleton?: boolean
+          support_email?: string | null
+          support_phone?: string | null
+          tagline?: string
+          udyam_number?: string | null
+          updated_at?: string
+          upi_id?: string | null
+        }
+        Update: {
+          about_text?: string | null
+          base_delivery_charge?: number
+          brand_name?: string
+          commission_pct?: number
+          created_at?: string
+          fssai_number?: string | null
+          id?: string
+          min_payout_limit?: number
+          per_km_rate?: number
+          qr_image_url?: string | null
+          singleton?: boolean
+          support_email?: string | null
+          support_phone?: string | null
+          tagline?: string
+          udyam_number?: string | null
+          updated_at?: string
+          upi_id?: string | null
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
+          allowed_units: Json
+          attributes: Json
           commission_pct: number
           created_at: string
           icon: string
@@ -175,6 +237,8 @@ export type Database = {
           sort_order: number
         }
         Insert: {
+          allowed_units?: Json
+          attributes?: Json
           commission_pct?: number
           created_at?: string
           icon?: string
@@ -185,6 +249,8 @@ export type Database = {
           sort_order?: number
         }
         Update: {
+          allowed_units?: Json
+          attributes?: Json
           commission_pct?: number
           created_at?: string
           icon?: string
@@ -585,6 +651,21 @@ export type Database = {
           },
         ]
       }
+      order_number_counters: {
+        Row: {
+          day: string
+          last_no: number
+        }
+        Insert: {
+          day: string
+          last_no?: number
+        }
+        Update: {
+          day?: string
+          last_no?: number
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           address_id: string | null
@@ -763,6 +844,8 @@ export type Database = {
           address_line: string | null
           category_id: string | null
           created_at: string
+          fssai_doc_url: string | null
+          fssai_number: string | null
           id: string
           id_doc_number: string | null
           id_doc_type: string | null
@@ -780,6 +863,8 @@ export type Database = {
           address_line?: string | null
           category_id?: string | null
           created_at?: string
+          fssai_doc_url?: string | null
+          fssai_number?: string | null
           id?: string
           id_doc_number?: string | null
           id_doc_type?: string | null
@@ -797,6 +882,8 @@ export type Database = {
           address_line?: string | null
           category_id?: string | null
           created_at?: string
+          fssai_doc_url?: string | null
+          fssai_number?: string | null
           id?: string
           id_doc_number?: string | null
           id_doc_type?: string | null
@@ -1032,9 +1119,12 @@ export type Database = {
           category_id: string | null
           commission_pct: number | null
           created_at: string
+          fssai_doc_url: string | null
+          fssai_number: string | null
           id: string
           image_url: string | null
           is_active: boolean
+          is_verified: boolean
           latitude: number
           longitude: number
           rating: number
@@ -1048,9 +1138,12 @@ export type Database = {
           category_id?: string | null
           commission_pct?: number | null
           created_at?: string
+          fssai_doc_url?: string | null
+          fssai_number?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean
+          is_verified?: boolean
           latitude?: number
           longitude?: number
           rating?: number
@@ -1064,9 +1157,12 @@ export type Database = {
           category_id?: string | null
           commission_pct?: number | null
           created_at?: string
+          fssai_doc_url?: string | null
+          fssai_number?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean
+          is_verified?: boolean
           latitude?: number
           longitude?: number
           rating?: number
@@ -1154,6 +1250,62 @@ export type Database = {
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          kind: string
+          note: string | null
+          order_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          kind: string
+          note?: string | null
+          order_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          kind?: string
+          note?: string | null
+          order_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_transactions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallets: {
+        Row: {
+          balance: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          updated_at?: string
           user_id?: string
         }
         Relationships: []

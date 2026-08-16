@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { Home, ClipboardList, ShoppingCart, User, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useCart } from "@/hooks/useCart";
+import { Tagline } from "@/components/app/Tagline";
 import { cn } from "@/lib/utils";
 
 type Tab = { to: string; label: string; icon: LucideIcon };
@@ -73,7 +74,9 @@ export function PageHeader({
           <h1 className="truncate font-display text-lg font-bold">{title}</h1>
           {subtitle ? (
             <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
-          ) : null}
+          ) : (
+            <Tagline className="truncate" />
+          )}
         </div>
         {right}
       </div>

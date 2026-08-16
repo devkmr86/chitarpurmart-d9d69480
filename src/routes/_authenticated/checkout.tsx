@@ -14,7 +14,9 @@ import { Map } from "@/components/app/Map";
 import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/hooks/useAuth";
 import { inr, RANCHI_CENTER } from "@/lib/mannu";
-import { placeOrder } from "@/lib/mannu.functions";
+import { placeOrder, payOrderFromWallet } from "@/lib/mannu.functions";
+import { useBusiness, upiIntent } from "@/hooks/useBusiness";
+import { playSuccessChime } from "@/lib/sound";
 
 export const Route = createFileRoute("/_authenticated/checkout")({
   head: () => ({
@@ -34,9 +36,12 @@ function Checkout() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const submit = useServerFn(placeOrder);
+  const payWallet = useServerFn(payOrderFromWallet);
+  const { business, brand } = useBusiness();
   const [addressId, setAddressId] = useState<string | null>(null);
   const [coupon, setCoupon] = useState("");
   const [placing, setPlacing] = useState(false);
+  const [mode, setMode] = useState<"COD" | "ONLINE" | "WALLET">("COD");
 
   const { data: addresses } = useQuery({
     queryKey: ["addresses", user?.id],
@@ -54,6 +59,14 @@ function Checkout() {
     if (!addressId && addresses?.[0]) setAddressId(addresses[0].id);
   }, [addresses, addressId]);
 
+  const { data: wallet } = useQuery({
+    queryKey: ["wallet", user?.id],
+    enabled: !!user,
+    queryFn: async () =>
+      (await supabase.from("wallets").select("balance").eq("user_id", user!.id).maybeSingle()).data,
+  });
+  const walletBalance = Number(wallet?.balance ?? 0);
+
   async function handlePlace() {
     if (!addressId) { toast.error("Add a delivery address first"); return; }
     if (!cart.items.length) { toast.error("Your cart is empty"); return; }
@@ -62,12 +75,14 @@ function Checkout() {
       const order = await submit({
         data: {
           addressId,
-          paymentMode: "COD",
+          paymentMode: mode,
           couponCode: coupon.trim() ? coupon.trim() : undefined,
           items: cart.items.map((i) => ({ productId: i.productId, qty: i.qty })),
         },
       });
+      if (mode === "WALLET") await payWallet({ data: { orderId: order.id } });
       cart.clear();
+      playSuccessChime();
       toast.success(`Order ${order.order_no} placed!`);
       navigate({ to: "/order/$orderId", params: { orderId: order.id } });
     } catch (e) {
@@ -150,13 +165,61 @@ function Checkout() {
 
         <section className="rounded-2xl border border-border bg-card p-4">
           <h2 className="font-display font-bold">Payment</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Cash on Delivery — pay the delivery partner when your order arrives.
-          </p>
+          <div className="mt-3 grid gap-2">
+            {([
+              { key: "COD", label: "Cash on Delivery", hint: "Rider ko delivery par cash dein" },
+              { key: "WALLET", label: `Mera Wallet · ${inr(walletBalance)}`, hint: "Instant wallet se payment" },
+              { key: "ONLINE", label: "Pay Online (UPI / QR)", hint: business?.upi_id ?? "UPI" },
+            ] as const).map((m) => (
+              <button
+                key={m.key}
+                onClick={() => setMode(m.key)}
+                disabled={m.key === "WALLET" && walletBalance < cart.subtotal}
+                className={`w-full rounded-xl border p-3 text-left disabled:opacity-50 ${
+                  mode === m.key ? "border-primary bg-primary/5" : "border-border"
+                }`}
+              >
+                <p className="text-sm font-semibold">{m.label}</p>
+                <p className="text-xs text-muted-foreground">{m.hint}</p>
+              </button>
+            ))}
+          </div>
+          {mode === "ONLINE" ? (
+            <div className="mt-3 rounded-xl border border-border p-3 text-center">
+              {business?.qr_image_url ? (
+                <img
+                  src={business.qr_image_url}
+                  alt={`${brand} payment QR code`}
+                  className="mx-auto size-40 rounded-lg object-contain"
+                  loading="lazy"
+                />
+              ) : null}
+              {business?.upi_id ? (
+                <>
+                  <p className="mt-2 text-sm font-semibold">{business.upi_id}</p>
+                  <a
+                    className="mt-2 inline-block rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+                    href={upiIntent({
+                      upiId: business.upi_id,
+                      name: brand,
+                      amount: cart.subtotal,
+                      note: "Mannu order",
+                    })}
+                  >
+                    Pay with UPI app
+                  </a>
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Online payment details abhi set nahi hain — COD chunein.
+                </p>
+              )}
+            </div>
+          ) : null}
         </section>
 
         <Button className="h-12 w-full text-base" onClick={handlePlace} disabled={placing}>
-          {placing ? <Loader2 className="size-4 animate-spin" /> : "Place order (COD)"}
+          {placing ? <Loader2 className="size-4 animate-spin" /> : `Place order (${mode})`}
         </Button>
       </main>
     </AppShell>

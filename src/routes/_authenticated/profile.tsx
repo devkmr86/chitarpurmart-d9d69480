@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { LogOut, Store, Bike, ShieldCheck, ChevronRight, Loader2 } from "lucide-react";
+import { LogOut, Store, Bike, ShieldCheck, ChevronRight, Loader2, Wallet, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell, PageHeader } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
@@ -84,6 +84,7 @@ function Profile() {
         </section>
 
         <section className="space-y-2">
+          <PanelLink to="/wallet" icon={Wallet} label="Mera Wallet" />
           {isAdmin ? (
             <PanelLink to="/admin" icon={ShieldCheck} label="Admin panel" />
           ) : null}
@@ -145,7 +146,7 @@ function PanelLink({
   icon: Icon,
   label,
 }: {
-  to: "/admin" | "/seller" | "/delivery";
+  to: "/admin" | "/seller" | "/delivery" | "/wallet";
   icon: typeof Store;
   label: string;
 }) {
@@ -178,6 +179,9 @@ function ApplyDialog({
   const [vehicle, setVehicle] = useState("");
   const [docType, setDocType] = useState("Aadhaar");
   const [docNumber, setDocNumber] = useState("");
+  const [fssai, setFssai] = useState("");
+  const [fssaiDoc, setFssaiDoc] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [pos, setPos] = useState(RANCHI_CENTER);
 
   const { data: categories } = useQuery({
@@ -188,9 +192,35 @@ function ApplyDialog({
     },
   });
 
+  async function uploadCertificate(file: File | undefined) {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const path = `fssai/${auth.user!.id}-${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("admin-uploads")
+        .upload(path, file, { upsert: true, contentType: file.type || "image/jpeg" });
+      if (error) throw new Error(error.message);
+      const { data: signed } = await supabase.storage
+        .from("admin-uploads")
+        .createSignedUrl(path, 60 * 60 * 24 * 3650);
+      setFssaiDoc(signed?.signedUrl ?? null);
+      toast.success("Certificate upload ho gaya");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upload nahi hua");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   async function submit() {
     if (role === "SELLER" && (!storeName.trim() || !categoryId || !address.trim())) {
       { toast.error("Fill store name, category and address"); return; }
+    }
+    if (role === "SELLER" && fssai && !/^\d{14}$/.test(fssai)) {
+      { toast.error("FSSAI number 14 digit ka hona chahiye"); return; }
     }
     if (role === "DELIVERY" && (!vehicle.trim() || !docNumber.trim())) {
       { toast.error("Fill vehicle number and ID document"); return; }
@@ -206,6 +236,8 @@ function ApplyDialog({
       latitude: pos.lat,
       longitude: pos.lng,
       vehicle_number: role === "DELIVERY" ? vehicle.trim() : null,
+      fssai_number: role === "SELLER" && fssai ? fssai : null,
+      fssai_doc_url: role === "SELLER" ? fssaiDoc : null,
       id_doc_type: role === "DELIVERY" ? docType : null,
       id_doc_number: role === "DELIVERY" ? docNumber.trim() : null,
     });
@@ -257,6 +289,33 @@ function ApplyDialog({
               <div className="space-y-1.5">
                 <Label>Shop address</Label>
                 <Input value={address} onChange={(e) => setAddress(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>FSSAI License Number (14 digits)</Label>
+                <Input
+                  inputMode="numeric"
+                  maxLength={14}
+                  value={fssai}
+                  onChange={(e) => setFssai(e.target.value.replace(/\D/g, ""))}
+                  placeholder="12345678901234"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Upload FSSAI Certificate</Label>
+                <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-border p-3 text-sm text-muted-foreground">
+                  {uploading ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Upload className="size-4" />
+                  )}
+                  {fssaiDoc ? "Certificate uploaded ✓ (badalne ke liye tap karein)" : "Certificate chunein"}
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    className="hidden"
+                    onChange={(e) => void uploadCertificate(e.target.files?.[0])}
+                  />
+                </label>
               </div>
             </>
           ) : (
