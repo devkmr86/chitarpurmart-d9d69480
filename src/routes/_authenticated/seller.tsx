@@ -82,6 +82,20 @@ function SellerPanel() {
     },
   });
 
+  const { data: wallet } = useQuery({
+    queryKey: ["seller-wallet", store?.id],
+    enabled: !!store?.id,
+    refetchInterval: 30000,
+    queryFn: async () =>
+      (
+        await supabase
+          .from("seller_wallets")
+          .select("unsettled_balance,lifetime_earned")
+          .eq("store_id", store!.id)
+          .maybeSingle()
+      ).data,
+  });
+
   const { data: orderItems } = useQuery({
     queryKey: ["seller-orders", store?.id],
     enabled: !!store,
