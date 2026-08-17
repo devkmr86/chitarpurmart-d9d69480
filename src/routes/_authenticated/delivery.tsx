@@ -57,6 +57,7 @@ function DeliveryPanel() {
     queryKey: ["available-orders"],
     queryKey: ["available-orders"],
     refetchInterval: 8000,
+    refetchInterval: 8000,
     queryFn: async () => {
       const { data } = await supabase
         .from("orders")
