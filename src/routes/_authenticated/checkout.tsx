@@ -42,6 +42,8 @@ function Checkout() {
   const [coupon, setCoupon] = useState("");
   const [placing, setPlacing] = useState(false);
   const [mode, setMode] = useState<"COD" | "ONLINE" | "WALLET">("COD");
+  const [recipientName, setRecipientName] = useState("");
+  const [recipientPhone, setRecipientPhone] = useState("");
 
   const { data: addresses } = useQuery({
     queryKey: ["addresses", user?.id],
@@ -70,6 +72,10 @@ function Checkout() {
   async function handlePlace() {
     if (!addressId) { toast.error("Add a delivery address first"); return; }
     if (!cart.items.length) { toast.error("Your cart is empty"); return; }
+    if (recipientPhone && !/^[6-9]\d{9}$/.test(recipientPhone)) {
+      toast.error("Receiver ka sahi 10-digit phone number daalein");
+      return;
+    }
     setPlacing(true);
     try {
       const order = await submit({
@@ -77,6 +83,8 @@ function Checkout() {
           addressId,
           paymentMode: mode,
           couponCode: coupon.trim() ? coupon.trim() : undefined,
+          recipientName: recipientName.trim() || undefined,
+          recipientPhone: recipientPhone.trim() || undefined,
           items: cart.items.map((i) => ({ productId: i.productId, qty: i.qty })),
         },
       });
@@ -149,6 +157,38 @@ function Checkout() {
               Delivery charge, platform fee and any discount are calculated securely when the
               order is placed.
             </p>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-border bg-card p-4">
+          <h2 className="font-display font-bold">Delivery contact details</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Rider isi number par call karega — kisi aur ke liye order kar rahe hain to unka naam
+            aur number dein.
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="rname">Receiver name</Label>
+              <Input
+                id="rname"
+                className="mt-1.5"
+                value={recipientName}
+                onChange={(e) => setRecipientName(e.target.value)}
+                placeholder="Jaise: Suraj Kumar"
+              />
+            </div>
+            <div>
+              <Label htmlFor="rphone">Receiver phone</Label>
+              <Input
+                id="rphone"
+                className="mt-1.5"
+                inputMode="numeric"
+                maxLength={10}
+                value={recipientPhone}
+                onChange={(e) => setRecipientPhone(e.target.value.replace(/\D/g, ""))}
+                placeholder="10-digit mobile"
+              />
+            </div>
           </div>
         </section>
 
