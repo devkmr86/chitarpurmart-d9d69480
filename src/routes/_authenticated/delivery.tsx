@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Bike, IndianRupee, Loader2, Wallet, QrCode } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell, PageHeader } from "@/components/app/AppShell";
+import { PayoutDetails } from "@/components/app/PayoutDetails";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -53,6 +54,7 @@ function DeliveryPanel() {
   });
 
   const { data: available } = useQuery({
+
     queryKey: ["available-orders"],
     refetchInterval: 8000,
     queryFn: async () => {
