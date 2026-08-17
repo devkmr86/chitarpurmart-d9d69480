@@ -54,7 +54,7 @@ function DeliveryPanel() {
   });
 
   const { data: available } = useQuery({
-
+    queryKey: ["available-orders"],
     queryKey: ["available-orders"],
     refetchInterval: 8000,
     queryFn: async () => {
