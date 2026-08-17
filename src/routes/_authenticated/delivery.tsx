@@ -267,9 +267,16 @@ function DeliveryPanel() {
                   <Badge>{STATUS_LABEL[o.status] ?? o.status}</Badge>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">{o.delivery_address}</p>
+                {o.recipient_phone ? (
+                  <p className="mt-1 text-xs">
+                    Receiver: <b>{o.recipient_name || "—"}</b> ·{" "}
+                    <a className="text-primary underline" href={`tel:${o.recipient_phone}`}>
+                      {o.recipient_phone}
+                    </a>
+                  </p>
+                ) : null}
                 <div className="mt-3 flex flex-wrap gap-2">
                   {o.status === "ASSIGNED" ? (
-
                     <Button size="sm" onClick={() => setStatus(o.id, "PICKED_UP")}>
                       Picked up
                     </Button>
