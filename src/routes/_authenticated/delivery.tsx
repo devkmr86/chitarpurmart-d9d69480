@@ -67,6 +67,20 @@ function DeliveryPanel() {
     },
   });
 
+  const { data: earn } = useQuery({
+    queryKey: ["driver-earnings", user?.id],
+    enabled: !!user,
+    refetchInterval: 30000,
+    queryFn: async () =>
+      (
+        await supabase
+          .from("driver_earnings")
+          .select("unsettled_balance,lifetime_earned")
+          .eq("user_id", user!.id)
+          .maybeSingle()
+      ).data,
+  });
+
   const { data: mine } = useQuery({
     queryKey: ["my-deliveries", user?.id],
     enabled: !!user,
@@ -192,6 +206,29 @@ function DeliveryPanel() {
         </div>
 
         <CashSettlement cash={Number(dp?.cash_in_hand ?? 0)} userId={user?.id} />
+
+        <section className="rounded-2xl border border-border bg-card p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs text-muted-foreground">Aaj ki unsettled earning</p>
+              <p className="font-display text-2xl font-bold text-primary">
+                {inr(Number(earn?.unsettled_balance ?? 0))}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Lifetime: {inr(Number(earn?.lifetime_earned ?? 0))} · Raat ko admin aapke UPI par
+                bhej dega.
+              </p>
+            </div>
+            {user ? (
+              <PayoutDetails
+                table="delivery_profiles"
+                matchValue={user.id}
+                current={dp}
+                onSaved={() => void qc.invalidateQueries({ queryKey: ["delivery-profile"] })}
+              />
+            ) : null}
+          </div>
+        </section>
 
         <Tabs defaultValue="available">
           <TabsList className="grid w-full grid-cols-2">
