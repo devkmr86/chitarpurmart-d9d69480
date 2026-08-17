@@ -269,6 +269,7 @@ function DeliveryPanel() {
                 <p className="mt-1 text-xs text-muted-foreground">{o.delivery_address}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {o.status === "ASSIGNED" ? (
+
                     <Button size="sm" onClick={() => setStatus(o.id, "PICKED_UP")}>
                       Picked up
                     </Button>
