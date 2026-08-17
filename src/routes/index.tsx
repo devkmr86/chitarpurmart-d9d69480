@@ -218,13 +218,15 @@ function Home() {
                     <span className="text-[11px] text-muted-foreground">
                       {(s.categories as { name: string } | null)?.name}
                     </span>
+                    <span className="text-[11px] text-muted-foreground">{s.km} km</span>
                   </div>
                 </div>
               </Link>
             ))}
             {visibleStores.length === 0 ? (
               <p className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                No stores found. Try another category or search.
+                {area.name} ke 12 km ke andar koi store nahi mila. Doosra area chunein ya search
+                badlein.
               </p>
             ) : null}
           </div>
