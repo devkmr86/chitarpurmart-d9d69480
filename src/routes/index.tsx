@@ -1,13 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Search, MapPin, Star, Zap, ShieldCheck, Timer } from "lucide-react";
+import { Search, Star, Zap, ShieldCheck, Timer } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app/AppShell";
+import { LocationSwitcher } from "@/components/app/LocationSwitcher";
+import { useDeliveryArea } from "@/hooks/useDeliveryArea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
-import { inr } from "@/lib/mannu";
+import { distanceKm, inr } from "@/lib/mannu";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -40,6 +42,7 @@ const EMOJI: Record<string, string> = {
 
 function Home() {
   const { user } = useAuth();
+  const { area } = useDeliveryArea();
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string | null>(null);
 
@@ -86,20 +89,21 @@ function Home() {
     if (cat) list = list.filter((s) => s.category_id === cat);
     if (q.trim().length > 1)
       list = list.filter((s) => s.store_name.toLowerCase().includes(q.trim().toLowerCase()));
-    return list;
-  }, [stores, cat, q]);
+    return list
+      .map((s) => ({
+        ...s,
+        km: distanceKm(area.lat, area.lng, s.latitude, s.longitude),
+      }))
+      .filter((s) => s.km <= 12)
+      .sort((a, b) => a.km - b.km);
+  }, [stores, cat, q, area.lat, area.lng]);
 
   return (
     <AppShell>
       <header className="rounded-b-3xl bg-gradient-to-br from-primary to-[oklch(0.62_0.19_35)] px-4 pb-6 pt-5 text-primary-foreground">
         <div className="mx-auto max-w-3xl">
           <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="flex items-center gap-1 text-xs/5 opacity-90">
-                <MapPin className="size-3.5" /> Delivering to
-              </p>
-              <p className="font-display text-lg font-bold">Ranchi, Jharkhand</p>
-            </div>
+            <LocationSwitcher className="min-w-0 text-left" />
             {user ? null : (
               <Link
                 to="/auth"
@@ -214,13 +218,15 @@ function Home() {
                     <span className="text-[11px] text-muted-foreground">
                       {(s.categories as { name: string } | null)?.name}
                     </span>
+                    <span className="text-[11px] text-muted-foreground">{s.km} km</span>
                   </div>
                 </div>
               </Link>
             ))}
             {visibleStores.length === 0 ? (
               <p className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                No stores found. Try another category or search.
+                {area.name} ke 12 km ke andar koi store nahi mila. Doosra area chunein ya search
+                badlein.
               </p>
             ) : null}
           </div>

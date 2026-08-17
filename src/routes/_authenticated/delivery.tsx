@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Bike, IndianRupee, Loader2, Wallet, QrCode } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell, PageHeader } from "@/components/app/AppShell";
+import { PayoutDetails } from "@/components/app/PayoutDetails";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -64,6 +65,20 @@ function DeliveryPanel() {
         .order("placed_at");
       return data ?? [];
     },
+  });
+
+  const { data: earn } = useQuery({
+    queryKey: ["driver-earnings", user?.id],
+    enabled: !!user,
+    refetchInterval: 30000,
+    queryFn: async () =>
+      (
+        await supabase
+          .from("driver_earnings")
+          .select("unsettled_balance,lifetime_earned")
+          .eq("user_id", user!.id)
+          .maybeSingle()
+      ).data,
   });
 
   const { data: mine } = useQuery({
@@ -192,6 +207,29 @@ function DeliveryPanel() {
 
         <CashSettlement cash={Number(dp?.cash_in_hand ?? 0)} userId={user?.id} />
 
+        <section className="rounded-2xl border border-border bg-card p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs text-muted-foreground">Aaj ki unsettled earning</p>
+              <p className="font-display text-2xl font-bold text-primary">
+                {inr(Number(earn?.unsettled_balance ?? 0))}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Lifetime: {inr(Number(earn?.lifetime_earned ?? 0))} · Raat ko admin aapke UPI par
+                bhej dega.
+              </p>
+            </div>
+            {user ? (
+              <PayoutDetails
+                table="delivery_profiles"
+                matchValue={user.id}
+                current={dp}
+                onSaved={() => void qc.invalidateQueries({ queryKey: ["delivery-profile"] })}
+              />
+            ) : null}
+          </div>
+        </section>
+
         <Tabs defaultValue="available">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="available">Available</TabsTrigger>
@@ -229,6 +267,14 @@ function DeliveryPanel() {
                   <Badge>{STATUS_LABEL[o.status] ?? o.status}</Badge>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">{o.delivery_address}</p>
+                {o.recipient_phone ? (
+                  <p className="mt-1 text-xs">
+                    Receiver: <b>{o.recipient_name || "—"}</b> ·{" "}
+                    <a className="text-primary underline" href={`tel:${o.recipient_phone}`}>
+                      {o.recipient_phone}
+                    </a>
+                  </p>
+                ) : null}
                 <div className="mt-3 flex flex-wrap gap-2">
                   {o.status === "ASSIGNED" ? (
                     <Button size="sm" onClick={() => setStatus(o.id, "PICKED_UP")}>

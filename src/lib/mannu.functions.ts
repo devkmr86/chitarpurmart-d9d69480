@@ -7,6 +7,8 @@ const placeOrderInput = z.object({
   addressId: z.string().uuid(),
   paymentMode: z.enum(["COD", "ONLINE", "WALLET"]).default("COD"),
   couponCode: z.string().trim().max(24).optional(),
+  recipientName: z.string().trim().max(60).optional(),
+  recipientPhone: z.string().trim().max(15).optional(),
   items: z
     .array(z.object({ productId: z.string().uuid(), qty: z.number().min(1).max(50) }))
     .min(1)
@@ -130,6 +132,8 @@ export const placeOrder = createServerFn({ method: "POST" })
         distance_km: totalKm,
         is_multi_pickup: isMulti,
         delivery_earning: earning,
+        recipient_name: data.recipientName ?? null,
+        recipient_phone: data.recipientPhone ?? null,
         delivery_address: [address.house_flat_no, address.street_area, address.landmark]
           .filter(Boolean)
           .join(", "),
@@ -322,6 +326,113 @@ export const completeDelivery = createServerFn({ method: "POST" })
       },
       { onConflict: "user_id" },
     );
+
+    // --- Nightly settlement ledgers -------------------------------------
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const earning = Number(order.delivery_earning);
+
+    const { data: rider } = await supabaseAdmin
+      .from("driver_earnings")
+      .select("unsettled_balance,lifetime_earned")
+      .eq("user_id", userId)
+      .maybeSingle();
+    await supabaseAdmin.from("driver_earnings").upsert(
+      {
+        user_id: userId,
+        unsettled_balance: Number(rider?.unsettled_balance ?? 0) + earning,
+        lifetime_earned: Number(rider?.lifetime_earned ?? 0) + earning,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" },
+    );
+
+    const { data: settings } = await supabaseAdmin
+      .from("business_settings")
+      .select("commission_pct")
+      .limit(1)
+      .maybeSingle();
+    const { data: lines } = await supabaseAdmin
+      .from("order_items")
+      .select("store_id,line_total,stores(commission_pct)")
+      .eq("order_id", order.id);
+
+    const byStore = new Map<string, { gross: number; pct: number }>();
+    for (const l of lines ?? []) {
+      const pct = Number(
+        (l.stores as { commission_pct?: number | null } | null)?.commission_pct ??
+          settings?.commission_pct ??
+          10,
+      );
+      const cur = byStore.get(l.store_id) ?? { gross: 0, pct };
+      cur.gross += Number(l.line_total);
+      byStore.set(l.store_id, cur);
+    }
+    for (const [storeId, agg] of byStore) {
+      const net = Math.round((agg.gross - (agg.gross * agg.pct) / 100) * 100) / 100;
+      const { data: sw } = await supabaseAdmin
+        .from("seller_wallets")
+        .select("unsettled_balance,lifetime_earned")
+        .eq("store_id", storeId)
+        .maybeSingle();
+      await supabaseAdmin.from("seller_wallets").upsert(
+        {
+          store_id: storeId,
+          unsettled_balance: Number(sw?.unsettled_balance ?? 0) + net,
+          lifetime_earned: Number(sw?.lifetime_earned ?? 0) + net,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "store_id" },
+      );
+    }
+
+    return { ok: true };
+  });
+
+/** Admin: marks a seller/rider as settled tonight and clears their unsettled balance. */
+export const markSettled = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        payeeType: z.enum(["SELLER", "RIDER"]),
+        payeeId: z.string().uuid(),
+        payeeName: z.string().trim().max(80).default(""),
+        amount: z.number().min(0).max(1000000),
+        ordersCount: z.number().int().min(0).default(0),
+        reference: z.string().trim().max(60).optional(),
+        method: z.string().trim().max(20).default("UPI"),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: isAdmin } = await supabase.rpc("is_admin");
+    if (!isAdmin) throw new Error("Forbidden");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    if (data.payeeType === "SELLER") {
+      await supabaseAdmin
+        .from("seller_wallets")
+        .update({ unsettled_balance: 0, updated_at: new Date().toISOString() })
+        .eq("store_id", data.payeeId);
+    } else {
+      await supabaseAdmin
+        .from("driver_earnings")
+        .update({ unsettled_balance: 0, updated_at: new Date().toISOString() })
+        .eq("user_id", data.payeeId);
+    }
+
+    await supabaseAdmin.from("settlement_history").insert({
+      payee_type: data.payeeType,
+      payee_id: data.payeeId,
+      payee_name: data.payeeName,
+      amount: data.amount,
+      orders_count: data.ordersCount,
+      method: data.method,
+      reference: data.reference ?? null,
+      settled_by: userId,
+    });
 
     return { ok: true };
   });

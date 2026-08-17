@@ -479,30 +479,39 @@ export type Database = {
       }
       delivery_profiles: {
         Row: {
+          bank_details: Json
           cash_in_hand: number
           current_lat: number | null
           current_lng: number | null
           is_online: boolean
+          payout_qr_url: string | null
+          payout_upi_id: string | null
           total_earnings: number
           updated_at: string
           user_id: string
           vehicle_number: string | null
         }
         Insert: {
+          bank_details?: Json
           cash_in_hand?: number
           current_lat?: number | null
           current_lng?: number | null
           is_online?: boolean
+          payout_qr_url?: string | null
+          payout_upi_id?: string | null
           total_earnings?: number
           updated_at?: string
           user_id: string
           vehicle_number?: string | null
         }
         Update: {
+          bank_details?: Json
           cash_in_hand?: number
           current_lat?: number | null
           current_lng?: number | null
           is_online?: boolean
+          payout_qr_url?: string | null
+          payout_upi_id?: string | null
           total_earnings?: number
           updated_at?: string
           user_id?: string
@@ -537,6 +546,27 @@ export type Database = {
           max_km?: number
           min_km?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      driver_earnings: {
+        Row: {
+          lifetime_earned: number
+          unsettled_balance: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          lifetime_earned?: number
+          unsettled_balance?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          lifetime_earned?: number
+          unsettled_balance?: number
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -688,6 +718,8 @@ export type Database = {
           placed_at: string
           platform_fee: number
           prep_time_min: number | null
+          recipient_name: string | null
+          recipient_phone: string | null
           status: Database["public"]["Enums"]["order_status"]
           subtotal: number
           total: number
@@ -713,6 +745,8 @@ export type Database = {
           placed_at?: string
           platform_fee?: number
           prep_time_min?: number | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           total?: number
@@ -738,6 +772,8 @@ export type Database = {
           placed_at?: string
           platform_fee?: number
           prep_time_min?: number | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           total?: number
@@ -951,6 +987,77 @@ export type Database = {
           },
         ]
       }
+      seller_wallets: {
+        Row: {
+          lifetime_earned: number
+          store_id: string
+          unsettled_balance: number
+          updated_at: string
+        }
+        Insert: {
+          lifetime_earned?: number
+          store_id: string
+          unsettled_balance?: number
+          updated_at?: string
+        }
+        Update: {
+          lifetime_earned?: number
+          store_id?: string
+          unsettled_balance?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_wallets_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      settlement_history: {
+        Row: {
+          amount: number
+          id: string
+          method: string | null
+          note: string | null
+          orders_count: number
+          payee_id: string
+          payee_name: string
+          payee_type: string
+          reference: string | null
+          settled_at: string
+          settled_by: string | null
+        }
+        Insert: {
+          amount: number
+          id?: string
+          method?: string | null
+          note?: string | null
+          orders_count?: number
+          payee_id: string
+          payee_name?: string
+          payee_type: string
+          reference?: string | null
+          settled_at?: string
+          settled_by?: string | null
+        }
+        Update: {
+          amount?: number
+          id?: string
+          method?: string | null
+          note?: string | null
+          orders_count?: number
+          payee_id?: string
+          payee_name?: string
+          payee_type?: string
+          reference?: string | null
+          settled_at?: string
+          settled_by?: string | null
+        }
+        Relationships: []
+      }
       shop_types: {
         Row: {
           created_at: string
@@ -1116,6 +1223,7 @@ export type Database = {
       stores: {
         Row: {
           address_line: string
+          bank_details: Json
           category_id: string | null
           commission_pct: number | null
           created_at: string
@@ -1127,14 +1235,18 @@ export type Database = {
           is_verified: boolean
           latitude: number
           longitude: number
+          payout_qr_url: string | null
+          payout_upi_id: string | null
           rating: number
           seller_id: string | null
           shop_type_id: string | null
           store_name: string
           store_status: string
+          udyam_number: string | null
         }
         Insert: {
           address_line?: string
+          bank_details?: Json
           category_id?: string | null
           commission_pct?: number | null
           created_at?: string
@@ -1146,14 +1258,18 @@ export type Database = {
           is_verified?: boolean
           latitude?: number
           longitude?: number
+          payout_qr_url?: string | null
+          payout_upi_id?: string | null
           rating?: number
           seller_id?: string | null
           shop_type_id?: string | null
           store_name: string
           store_status?: string
+          udyam_number?: string | null
         }
         Update: {
           address_line?: string
+          bank_details?: Json
           category_id?: string | null
           commission_pct?: number | null
           created_at?: string
@@ -1165,11 +1281,14 @@ export type Database = {
           is_verified?: boolean
           latitude?: number
           longitude?: number
+          payout_qr_url?: string | null
+          payout_upi_id?: string | null
           rating?: number
           seller_id?: string | null
           shop_type_id?: string | null
           store_name?: string
           store_status?: string
+          udyam_number?: string | null
         }
         Relationships: [
           {

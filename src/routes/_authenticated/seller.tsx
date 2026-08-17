@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Loader2, Package, Plus, BellRing, Coffee, IndianRupee } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell, PageHeader } from "@/components/app/AppShell";
+import { PayoutDetails } from "@/components/app/PayoutDetails";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -79,6 +80,20 @@ function SellerPanel() {
         .order("product_name");
       return data ?? [];
     },
+  });
+
+  const { data: wallet } = useQuery({
+    queryKey: ["seller-wallet", store?.id],
+    enabled: !!store?.id,
+    refetchInterval: 30000,
+    queryFn: async () =>
+      (
+        await supabase
+          .from("seller_wallets")
+          .select("unsettled_balance,lifetime_earned")
+          .eq("store_id", store!.id)
+          .maybeSingle()
+      ).data,
   });
 
   const { data: orderItems } = useQuery({
@@ -220,6 +235,27 @@ function SellerPanel() {
             No store linked to your account yet.
           </p>
         ) : (
+          <>
+          <section className="mb-4 rounded-2xl border border-border bg-card p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs text-muted-foreground">Aaj ka unsettled payment</p>
+                <p className="font-display text-2xl font-bold text-primary">
+                  {inr(Number(wallet?.unsettled_balance ?? 0))}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Lifetime: {inr(Number(wallet?.lifetime_earned ?? 0))} · Har raat admin sidhe aapke
+                  UPI/Bank me bhejta hai.
+                </p>
+              </div>
+              <PayoutDetails
+                table="stores"
+                matchValue={store.id}
+                current={store}
+                onSaved={() => void qc.invalidateQueries({ queryKey: ["my-store"] })}
+              />
+            </div>
+          </section>
           <Tabs defaultValue="orders">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="orders">Orders</TabsTrigger>
@@ -310,6 +346,7 @@ function SellerPanel() {
               ))}
             </TabsContent>
           </Tabs>
+          </>
         )}
       </main>
     </AppShell>
