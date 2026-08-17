@@ -35,7 +35,7 @@ export function PayoutDetails({
     payout_upi_id?: string | null;
     payout_qr_url?: string | null;
     bank_details?: unknown;
-  } | null;
+  } | null | undefined;
 }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
