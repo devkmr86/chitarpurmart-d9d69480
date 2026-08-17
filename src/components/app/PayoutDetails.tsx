@@ -24,13 +24,11 @@ export type BankDetails = {
 /** Beneficiary settings for a seller store or a delivery partner. */
 export function PayoutDetails({
   table,
-  matchColumn,
   matchValue,
   onSaved,
   current,
 }: {
   table: "stores" | "delivery_profiles";
-  matchColumn: "id" | "user_id";
   matchValue: string;
   onSaved?: () => void;
   current?: {
