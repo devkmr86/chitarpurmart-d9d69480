@@ -7,6 +7,8 @@ const placeOrderInput = z.object({
   addressId: z.string().uuid(),
   paymentMode: z.enum(["COD", "ONLINE", "WALLET"]).default("COD"),
   couponCode: z.string().trim().max(24).optional(),
+  recipientName: z.string().trim().max(60).optional(),
+  recipientPhone: z.string().trim().max(15).optional(),
   items: z
     .array(z.object({ productId: z.string().uuid(), qty: z.number().min(1).max(50) }))
     .min(1)
@@ -130,6 +132,8 @@ export const placeOrder = createServerFn({ method: "POST" })
         distance_km: totalKm,
         is_multi_pickup: isMulti,
         delivery_earning: earning,
+        recipient_name: data.recipientName ?? null,
+        recipient_phone: data.recipientPhone ?? null,
         delivery_address: [address.house_flat_no, address.street_area, address.landmark]
           .filter(Boolean)
           .join(", "),
