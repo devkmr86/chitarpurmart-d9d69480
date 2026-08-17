@@ -56,8 +56,6 @@ function DeliveryPanel() {
   const { data: available } = useQuery({
     queryKey: ["available-orders"],
     refetchInterval: 8000,
-
-*** placeholder ***
     queryFn: async () => {
       const { data } = await supabase
         .from("orders")
