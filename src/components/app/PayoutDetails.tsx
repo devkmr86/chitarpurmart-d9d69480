@@ -66,14 +66,15 @@ export function PayoutDetails({
 
   async function save() {
     setSaving(true);
-    const { error } = await supabase
-      .from(table)
-      .update({
-        payout_upi_id: upi.trim() || null,
-        payout_qr_url: qr,
-        bank_details: bank as never,
-      })
-      .eq(matchColumn, matchValue);
+    const patch = {
+      payout_upi_id: upi.trim() || null,
+      payout_qr_url: qr,
+      bank_details: bank as never,
+    };
+    const { error } =
+      table === "stores"
+        ? await supabase.from("stores").update(patch).eq("id", matchValue)
+        : await supabase.from("delivery_profiles").update(patch).eq("user_id", matchValue);
     setSaving(false);
     if (error) {
       toast.error(error.message);
