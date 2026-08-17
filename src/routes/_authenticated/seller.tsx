@@ -332,6 +332,7 @@ function SellerPanel() {
               ))}
             </TabsContent>
           </Tabs>
+          </>
         )}
       </main>
     </AppShell>
