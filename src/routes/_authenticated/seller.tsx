@@ -370,6 +370,7 @@ function ProductDialog({ storeId, onSaved }: { storeId: string; onSaved: () => v
   const [stock, setStock] = useState("10");
   const [unitQty, setUnitQty] = useState("1");
   const [unitId, setUnitId] = useState("");
+  const [variants, setVariants] = useState<VariantDraft[]>([]);
 
   const { data: units } = useQuery({
     queryKey: ["units"],
