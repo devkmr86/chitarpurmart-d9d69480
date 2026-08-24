@@ -15,6 +15,8 @@ import {
   LogOut,
   ShieldCheck,
   Building2,
+  Users,
+
   type LucideIcon,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
