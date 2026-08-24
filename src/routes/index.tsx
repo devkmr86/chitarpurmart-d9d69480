@@ -88,7 +88,7 @@ const MART_QUICK = ["Atta", "Doodh", "Sabji", "Chicken", "Tel", "Chawal", "Snack
 function Home() {
   const { user } = useAuth();
   const { area } = useDeliveryArea();
-  const { count, total } = useCart();
+  const { count, subtotal } = useCart();
   const [mode, setMode] = useState<Mode>("mart");
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string | null>(null);
@@ -462,7 +462,7 @@ function Home() {
         >
           <span className="flex items-center gap-2 text-sm font-semibold">
             <ShoppingCart className="size-4" />
-            {count} item{count > 1 ? "s" : ""} · {inr(total)}
+            {count} item{count > 1 ? "s" : ""} · {inr(subtotal)}
           </span>
           <span className="text-sm font-bold">View cart →</span>
         </Link>
