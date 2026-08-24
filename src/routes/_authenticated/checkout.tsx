@@ -139,7 +139,7 @@ function Checkout() {
         </section>
 
         <section className="rounded-2xl border border-border bg-card p-4">
-          <h2 className="font-display font-bold">Order summary</h2>
+          <h2 className="font-display font-bold">Bill Summary</h2>
           <div className="mt-3 space-y-1.5">
             {cart.items.map((i) => (
               <div key={i.productId} className="flex justify-between text-sm">
@@ -151,14 +151,48 @@ function Checkout() {
             ))}
             <div className="flex justify-between border-t border-border pt-2 text-sm font-semibold">
               <span>Item total</span>
-              <span>{inr(cart.subtotal)}</span>
+              <span>{inr(quote?.subtotal ?? cart.subtotal)}</span>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Delivery charge, platform fee and any discount are calculated securely when the
-              order is placed.
-            </p>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Delivery fee</span>
+              <span>
+                {quote ? (
+                  quote.deliveryCharge === 0 ? (
+                    <span className="font-semibold text-primary">FREE</span>
+                  ) : (
+                    inr(quote.deliveryCharge)
+                  )
+                ) : (
+                  "—"
+                )}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Platform fee</span>
+              <span>{quote ? inr(quote.platformFee) : "—"}</span>
+            </div>
+            {quote && quote.discount > 0 ? (
+              <div className="flex justify-between text-sm text-primary">
+                <span>Coupon {quote.couponCode ?? ""}</span>
+                <span>-{inr(quote.discount)}</span>
+              </div>
+            ) : null}
+            <div className="flex justify-between border-t border-dashed border-border pt-2 text-base font-bold">
+              <span>To pay</span>
+              <span>{inr(payable)}</span>
+            </div>
+            {quoteError ? (
+              <p className="text-xs text-destructive">{quoteError.message}</p>
+            ) : quote ? (
+              <p className="text-[11px] text-muted-foreground">
+                Distance {quote.distanceKm} km{quote.isMulti ? " · multi-store pickup" : ""}
+              </p>
+            ) : (
+              <p className="text-[11px] text-muted-foreground">Calculating charges…</p>
+            )}
           </div>
         </section>
+
 
         <section className="rounded-2xl border border-border bg-card p-4">
           <h2 className="font-display font-bold">Delivery contact details</h2>
