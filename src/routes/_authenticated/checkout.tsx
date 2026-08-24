@@ -69,6 +69,30 @@ function Checkout() {
   });
   const walletBalance = Number(wallet?.balance ?? 0);
 
+  const cartKey = cart.items.map((i) => `${i.productId}:${i.qty}`).join(",");
+  const { data: quote, error: quoteError } = useQuery({
+    queryKey: ["order-quote", addressId, cartKey, coupon.trim().toUpperCase()],
+    enabled: !!addressId && cart.items.length > 0,
+    retry: false,
+    queryFn: () =>
+      getQuote({
+        data: {
+          addressId: addressId!,
+          couponCode: coupon.trim() ? coupon.trim() : undefined,
+          items: cart.items.map((i) => ({ productId: i.productId, qty: i.qty })),
+        },
+      }),
+  });
+  const payable = quote?.total ?? cart.subtotal;
+  const upiId = business?.upi_id?.trim() || "764384019@ybl";
+  const upiLink = upiIntent({
+    upiId,
+    name: brand,
+    amount: payable,
+    note: "Mannu order",
+  });
+
+
   async function handlePlace() {
     if (!addressId) { toast.error("Add a delivery address first"); return; }
     if (!cart.items.length) { toast.error("Your cart is empty"); return; }
