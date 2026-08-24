@@ -14,7 +14,7 @@ import { Map } from "@/components/app/Map";
 import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/hooks/useAuth";
 import { inr, RANCHI_CENTER } from "@/lib/mannu";
-import { placeOrder, payOrderFromWallet } from "@/lib/mannu.functions";
+import { placeOrder, payOrderFromWallet, quoteOrder } from "@/lib/mannu.functions";
 import { useBusiness, upiIntent } from "@/hooks/useBusiness";
 import { playSuccessChime } from "@/lib/sound";
 
