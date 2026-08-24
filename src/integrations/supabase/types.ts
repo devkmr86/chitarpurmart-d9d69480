@@ -788,6 +788,66 @@ export type Database = {
           },
         ]
       }
+      product_variants: {
+        Row: {
+          created_at: string
+          id: string
+          is_available: boolean
+          label: string
+          mrp: number | null
+          price: number
+          product_id: string
+          sort_order: number
+          stock_qty: number
+          unit_id: string | null
+          unit_qty: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_available?: boolean
+          label: string
+          mrp?: number | null
+          price: number
+          product_id: string
+          sort_order?: number
+          stock_qty?: number
+          unit_id?: string | null
+          unit_qty?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_available?: boolean
+          label?: string
+          mrp?: number | null
+          price?: number
+          product_id?: string
+          sort_order?: number
+          stock_qty?: number
+          unit_id?: string | null
+          unit_qty?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_variants_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           created_at: string
