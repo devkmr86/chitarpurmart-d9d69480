@@ -19,6 +19,13 @@ import { inr, STATUS_LABEL } from "@/lib/mannu";
 import { requestStorePayout } from "@/lib/mannu.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { startOrderAlarm } from "@/lib/sound";
+import {
+  VariantManager,
+  VariantRepeater,
+  draftsToRows,
+  emptyVariant,
+  type VariantDraft,
+} from "@/components/app/VariantManager";
 
 const OOS_KEY = "mannu-oos";
 
