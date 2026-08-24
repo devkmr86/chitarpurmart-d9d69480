@@ -28,6 +28,7 @@ import { Route as AuthenticatedAdminApprovalsRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminBankRouteImport } from './routes/_authenticated/admin/bank'
 import { Route as AuthenticatedAdminBusinessRouteImport } from './routes/_authenticated/admin/business'
 import { Route as AuthenticatedAdminCatalogRouteImport } from './routes/_authenticated/admin/catalog'
+import { Route as AuthenticatedAdminCustomersRouteImport } from './routes/_authenticated/admin/customers'
 import { Route as AuthenticatedAdminOrdersRouteImport } from './routes/_authenticated/admin/orders'
 import { Route as AuthenticatedAdminPartnersRouteImport } from './routes/_authenticated/admin/partners'
 import { Route as AuthenticatedAdminPayoutsRouteImport } from './routes/_authenticated/admin/payouts'
@@ -134,6 +135,12 @@ const AuthenticatedAdminCatalogRoute =
     path: '/catalog',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminCustomersRoute =
+  AuthenticatedAdminCustomersRouteImport.update({
+    id: '/customers',
+    path: '/customers',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminOrdersRoute =
   AuthenticatedAdminOrdersRouteImport.update({
     id: '/orders',
@@ -201,6 +208,7 @@ export interface FileRoutesByFullPath {
   '/admin/bank': typeof AuthenticatedAdminBankRoute
   '/admin/business': typeof AuthenticatedAdminBusinessRoute
   '/admin/catalog': typeof AuthenticatedAdminCatalogRoute
+  '/admin/customers': typeof AuthenticatedAdminCustomersRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/admin/partners': typeof AuthenticatedAdminPartnersRoute
   '/admin/payouts': typeof AuthenticatedAdminPayoutsRoute
@@ -228,6 +236,7 @@ export interface FileRoutesByTo {
   '/admin/bank': typeof AuthenticatedAdminBankRoute
   '/admin/business': typeof AuthenticatedAdminBusinessRoute
   '/admin/catalog': typeof AuthenticatedAdminCatalogRoute
+  '/admin/customers': typeof AuthenticatedAdminCustomersRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/admin/partners': typeof AuthenticatedAdminPartnersRoute
   '/admin/payouts': typeof AuthenticatedAdminPayoutsRoute
@@ -258,6 +267,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/bank': typeof AuthenticatedAdminBankRoute
   '/_authenticated/admin/business': typeof AuthenticatedAdminBusinessRoute
   '/_authenticated/admin/catalog': typeof AuthenticatedAdminCatalogRoute
+  '/_authenticated/admin/customers': typeof AuthenticatedAdminCustomersRoute
   '/_authenticated/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/_authenticated/admin/partners': typeof AuthenticatedAdminPartnersRoute
   '/_authenticated/admin/payouts': typeof AuthenticatedAdminPayoutsRoute
@@ -288,6 +298,7 @@ export interface FileRouteTypes {
     | '/admin/bank'
     | '/admin/business'
     | '/admin/catalog'
+    | '/admin/customers'
     | '/admin/orders'
     | '/admin/partners'
     | '/admin/payouts'
@@ -315,6 +326,7 @@ export interface FileRouteTypes {
     | '/admin/bank'
     | '/admin/business'
     | '/admin/catalog'
+    | '/admin/customers'
     | '/admin/orders'
     | '/admin/partners'
     | '/admin/payouts'
@@ -344,6 +356,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/bank'
     | '/_authenticated/admin/business'
     | '/_authenticated/admin/catalog'
+    | '/_authenticated/admin/customers'
     | '/_authenticated/admin/orders'
     | '/_authenticated/admin/partners'
     | '/_authenticated/admin/payouts'
@@ -500,6 +513,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCatalogRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/customers': {
+      id: '/_authenticated/admin/customers'
+      path: '/customers'
+      fullPath: '/admin/customers'
+      preLoaderRoute: typeof AuthenticatedAdminCustomersRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/orders': {
       id: '/_authenticated/admin/orders'
       path: '/orders'
@@ -564,6 +584,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminBankRoute: typeof AuthenticatedAdminBankRoute
   AuthenticatedAdminBusinessRoute: typeof AuthenticatedAdminBusinessRoute
   AuthenticatedAdminCatalogRoute: typeof AuthenticatedAdminCatalogRoute
+  AuthenticatedAdminCustomersRoute: typeof AuthenticatedAdminCustomersRoute
   AuthenticatedAdminOrdersRoute: typeof AuthenticatedAdminOrdersRoute
   AuthenticatedAdminPartnersRoute: typeof AuthenticatedAdminPartnersRoute
   AuthenticatedAdminPayoutsRoute: typeof AuthenticatedAdminPayoutsRoute
@@ -579,6 +600,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminBankRoute: AuthenticatedAdminBankRoute,
     AuthenticatedAdminBusinessRoute: AuthenticatedAdminBusinessRoute,
     AuthenticatedAdminCatalogRoute: AuthenticatedAdminCatalogRoute,
+    AuthenticatedAdminCustomersRoute: AuthenticatedAdminCustomersRoute,
     AuthenticatedAdminOrdersRoute: AuthenticatedAdminOrdersRoute,
     AuthenticatedAdminPartnersRoute: AuthenticatedAdminPartnersRoute,
     AuthenticatedAdminPayoutsRoute: AuthenticatedAdminPayoutsRoute,
