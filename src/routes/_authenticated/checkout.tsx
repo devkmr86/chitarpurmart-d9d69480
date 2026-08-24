@@ -312,8 +312,9 @@ function Checkout() {
         </section>
 
         <Button className="h-12 w-full text-base" onClick={handlePlace} disabled={placing}>
-          {placing ? <Loader2 className="size-4 animate-spin" /> : `Place order (${mode})`}
+          {placing ? <Loader2 className="size-4 animate-spin" /> : `Place order • ${inr(payable)}`}
         </Button>
+
       </main>
     </AppShell>
   );
