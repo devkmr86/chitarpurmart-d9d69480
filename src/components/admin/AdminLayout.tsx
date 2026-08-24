@@ -15,6 +15,8 @@ import {
   LogOut,
   ShieldCheck,
   Building2,
+  Users,
+
   type LucideIcon,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -30,6 +32,8 @@ export const ADMIN_NAV: NavItem[] = [
   { to: "/admin/approvals", label: "Approvals & Onboarding", icon: UserCheck },
   { to: "/admin/stores", label: "Stores Management", icon: Store },
   { to: "/admin/partners", label: "Delivery Partners", icon: Bike },
+  { to: "/admin/customers", label: "Customers", icon: Users },
+
   { to: "/admin/orders", label: "Orders Master", icon: ClipboardList },
   { to: "/admin/catalog", label: "Catalog & Categories", icon: Boxes },
   { to: "/admin/payouts", label: "Payouts & Commission", icon: Wallet },
