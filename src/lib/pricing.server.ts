@@ -4,7 +4,7 @@ type AnySupabase = {
   from: (table: string) => any;
 };
 
-export type QuoteItem = { productId: string; qty: number };
+export type QuoteItem = { productId: string; qty: number; variantId?: string | null | undefined };
 
 export type OrderQuote = {
   subtotal: number;
@@ -53,6 +53,16 @@ export async function computeOrderQuote(
     .in("id", ids);
   if (prodErr || !products?.length) throw new Error("Products unavailable");
 
+  const variantIds = args.items.map((i) => i.variantId).filter(Boolean) as string[];
+  let variants: any[] = [];
+  if (variantIds.length) {
+    const { data: vRows } = await supabase
+      .from("product_variants")
+      .select("id,product_id,label,price,stock_qty,is_available,unit_qty,units(short_name)")
+      .in("id", variantIds);
+    variants = vRows ?? [];
+  }
+
   const storeIds = [...new Set(products.map((p: any) => p.store_id as string))];
   if (storeIds.length > 2) throw new Error("An order can include at most 2 stores");
 
@@ -75,16 +85,29 @@ export async function computeOrderQuote(
   for (const line of args.items) {
     const p = products.find((x: any) => x.id === line.productId);
     if (!p) throw new Error("A product in your cart is no longer available");
-    if (!p.is_available || Number(p.stock_qty) < line.qty)
-      throw new Error(`${p.product_name} is out of stock`);
-    const lineTotal = Number(p.price) * line.qty;
+    const v = line.variantId
+      ? variants.find((x: any) => x.id === line.variantId && x.product_id === p.id)
+      : null;
+    if (line.variantId && !v) throw new Error(`${p.product_name}: selected size is no longer available`);
+
+    const available = v ? v.is_available : p.is_available;
+    const stock = Number(v ? v.stock_qty : p.stock_qty);
+    const displayName = v ? `${p.product_name} (${v.label})` : p.product_name;
+    if (!p.is_available || !available || stock < line.qty)
+      throw new Error(`${displayName} is out of stock`);
+
+    const unitPrice = Number(v ? v.price : p.price);
+    const unitSource = v ?? p;
+    const lineTotal = unitPrice * line.qty;
     subtotal += lineTotal;
     itemRows.push({
       store_id: p.store_id,
       product_id: p.id,
-      product_name: p.product_name,
-      unit_label: `${p.unit_qty} ${(p.units as { short_name?: string } | null)?.short_name ?? ""}`.trim(),
-      unit_price: Number(p.price),
+      product_name: displayName,
+      unit_label: v
+        ? v.label
+        : `${unitSource.unit_qty} ${(unitSource.units as { short_name?: string } | null)?.short_name ?? ""}`.trim(),
+      unit_price: unitPrice,
       qty: line.qty,
       line_total: lineTotal,
     });

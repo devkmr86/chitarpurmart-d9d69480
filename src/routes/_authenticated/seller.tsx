@@ -24,6 +24,7 @@ import {
   VariantRepeater,
   draftsToRows,
   emptyVariant,
+  useUnits,
   type VariantDraft,
 } from "@/components/app/VariantManager";
 
@@ -102,6 +103,22 @@ function SellerPanel() {
           .maybeSingle()
       ).data,
   });
+
+  const { data: category } = useQuery({
+    queryKey: ["store-category", store?.category_id],
+    enabled: !!store?.category_id,
+    queryFn: async () =>
+      (
+        await supabase
+          .from("categories")
+          .select("name,allowed_units")
+          .eq("id", store!.category_id!)
+          .maybeSingle()
+      ).data,
+  });
+  const allowedUnits = Array.isArray(category?.allowed_units)
+    ? (category!.allowed_units as unknown[]).map(String)
+    : undefined;
 
   const { data: orderItems } = useQuery({
     queryKey: ["seller-orders", store?.id],
@@ -323,6 +340,7 @@ function SellerPanel() {
             <TabsContent value="products" className="mt-4 space-y-3">
               <ProductDialog
                 storeId={store.id}
+                allowedUnits={allowedUnits}
                 onSaved={() => void qc.invalidateQueries({ queryKey: ["seller-products"] })}
               />
               {(products ?? []).map((p) => (
@@ -361,7 +379,15 @@ function SellerPanel() {
   );
 }
 
-function ProductDialog({ storeId, onSaved }: { storeId: string; onSaved: () => void }) {
+function ProductDialog({
+  storeId,
+  allowedUnits,
+  onSaved,
+}: {
+  storeId: string;
+  allowedUnits?: string[] | undefined;
+  onSaved: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState("");
@@ -372,13 +398,7 @@ function ProductDialog({ storeId, onSaved }: { storeId: string; onSaved: () => v
   const [unitId, setUnitId] = useState("");
   const [variants, setVariants] = useState<VariantDraft[]>([]);
 
-  const { data: units } = useQuery({
-    queryKey: ["units"],
-    queryFn: async () => {
-      const { data } = await supabase.from("units").select("id,short_name,name");
-      return data ?? [];
-    },
-  });
+  const { data: units } = useUnits(allowedUnits);
 
   async function save() {
     if (!name.trim() || !price) { toast.error("Enter product name and price"); return; }
@@ -472,7 +492,7 @@ function ProductDialog({ storeId, onSaved }: { storeId: string; onSaved: () => v
                 <Plus className="size-4" /> Add Size
               </Button>
             ) : (
-              <VariantRepeater rows={variants} onChange={setVariants} />
+              <VariantRepeater rows={variants} onChange={setVariants} allowedUnits={allowedUnits} />
             )}
           </div>
           <Button className="w-full" onClick={save} disabled={saving}>

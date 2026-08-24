@@ -24,25 +24,34 @@ export function emptyVariant(): VariantDraft {
   return { label: "", unit_id: "", unit_qty: "1", price: "", mrp: "", stock_qty: "10" };
 }
 
-export function useUnits() {
-  return useQuery({
+/** Units list, optionally narrowed to the units a category allows. */
+export function useUnits(allowed?: string[] | undefined) {
+  const q = useQuery({
     queryKey: ["units"],
     queryFn: async () => {
       const { data } = await supabase.from("units").select("id,short_name,name").eq("is_active", true);
       return data ?? [];
     },
   });
+  const all = q.data ?? [];
+  const filtered =
+    allowed && allowed.length
+      ? all.filter((u) => allowed.some((a) => a.toLowerCase() === u.short_name.toLowerCase()))
+      : all;
+  return { ...q, data: filtered.length ? filtered : all };
 }
 
 /** Rows used while creating a product — parent owns the state. */
 export function VariantRepeater({
   rows,
   onChange,
+  allowedUnits,
 }: {
   rows: VariantDraft[];
   onChange: (rows: VariantDraft[]) => void;
+  allowedUnits?: string[] | undefined;
 }) {
-  const { data: units } = useUnits();
+  const { data: units } = useUnits(allowedUnits);
 
   function update(i: number, patch: Partial<VariantDraft>) {
     onChange(rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));

@@ -71,7 +71,7 @@ function Checkout() {
   });
   const walletBalance = Number(wallet?.balance ?? 0);
 
-  const cartKey = cart.items.map((i) => `${i.productId}:${i.qty}`).join(",");
+  const cartKey = cart.items.map((i) => `${i.productId}:${i.variantId ?? ""}:${i.qty}`).join(",");
   const { data: quote, error: quoteError } = useQuery({
     queryKey: ["order-quote", addressId, cartKey, coupon.trim().toUpperCase()],
     enabled: !!addressId && cart.items.length > 0,
@@ -81,7 +81,7 @@ function Checkout() {
         data: {
           addressId: addressId!,
           couponCode: coupon.trim() ? coupon.trim() : undefined,
-          items: cart.items.map((i) => ({ productId: i.productId, qty: i.qty })),
+          items: cart.items.map((i) => ({ productId: i.productId, variantId: i.variantId ?? null, qty: i.qty })),
         },
       }),
   });
@@ -111,7 +111,7 @@ function Checkout() {
           couponCode: coupon.trim() ? coupon.trim() : undefined,
           recipientName: recipientName.trim() || undefined,
           recipientPhone: recipientPhone.trim() || undefined,
-          items: cart.items.map((i) => ({ productId: i.productId, qty: i.qty })),
+          items: cart.items.map((i) => ({ productId: i.productId, variantId: i.variantId ?? null, qty: i.qty })),
         },
       });
       if (mode === "WALLET") await payWallet({ data: { orderId: order.id } });
@@ -168,7 +168,7 @@ function Checkout() {
           <h2 className="font-display font-bold">Bill Summary</h2>
           <div className="mt-3 space-y-1.5">
             {cart.items.map((i) => (
-              <div key={i.productId} className="flex justify-between text-sm">
+              <div key={`${i.productId}:${i.variantId ?? ""}`} className="flex justify-between text-sm">
                 <span className="truncate pr-3 text-muted-foreground">
                   {i.name} × {i.qty}
                 </span>

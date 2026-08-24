@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useCart, type CartItem } from "@/hooks/useCart";
+import { useCart, lineKey, type CartItem } from "@/hooks/useCart";
 import { inr } from "@/lib/mannu";
 import { Map } from "@/components/app/Map";
 import { BrandFooter } from "@/components/app/Tagline";
@@ -39,6 +39,7 @@ function StorePage() {
   const navigate = useNavigate();
   const cart = useCart();
   const [pending, setPending] = useState<Omit<CartItem, "qty"> | null>(null);
+  const [chosen, setChosen] = useState<Record<string, string>>({});
 
   const { data: store } = useQuery({
     queryKey: ["store", storeId],
@@ -64,20 +65,52 @@ function StorePage() {
     },
   });
 
-  function qtyOf(id: string) {
-    return cart.items.find((i) => i.productId === id)?.qty ?? 0;
+  const { data: variants } = useQuery({
+    queryKey: ["store-variants", storeId, (products ?? []).length],
+    enabled: (products ?? []).length > 0,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("product_variants")
+        .select("*")
+        .in("product_id", (products ?? []).map((p) => p.id))
+        .eq("is_available", true)
+        .order("sort_order");
+      return data ?? [];
+    },
+  });
+
+  type Variant = NonNullable<typeof variants>[number];
+
+  function variantsOf(productId: string): Variant[] {
+    return (variants ?? []).filter((v) => v.product_id === productId);
+  }
+
+  function selectedVariant(productId: string): Variant | null {
+    const list = variantsOf(productId);
+    if (!list.length) return null;
+    return list.find((v) => v.id === chosen[productId]) ?? list[0]!;
+  }
+
+  function qtyOf(id: string, variantId?: string | null) {
+    const key = lineKey({ productId: id, variantId: variantId ?? null });
+    return cart.items.find((i) => lineKey(i) === key)?.qty ?? 0;
   }
 
   function addItem(p: NonNullable<typeof products>[number]) {
     if (!store) return;
+    const v = selectedVariant(p.id);
     const item: Omit<CartItem, "qty"> = {
       productId: p.id,
-      name: p.product_name,
-      price: Number(p.price),
-      unitLabel: `${p.unit_qty} ${(p.units as { short_name?: string } | null)?.short_name ?? ""}`.trim(),
+      name: v ? `${p.product_name} (${v.label})` : p.product_name,
+      price: Number(v ? v.price : p.price),
+      unitLabel: v
+        ? v.label
+        : `${p.unit_qty} ${(p.units as { short_name?: string } | null)?.short_name ?? ""}`.trim(),
       storeId: store.id,
       storeName: store.store_name,
       imageUrl: p.image_url,
+      variantId: v?.id ?? null,
+      variantLabel: v?.label ?? null,
     };
     const res = cart.add(item);
     if (!res.ok) setPending(item);
@@ -130,8 +163,14 @@ function StorePage() {
         <section className="mt-5 space-y-3">
           <h2 className="font-display text-base font-bold">Products</h2>
           {(products ?? []).map((p) => {
-            const qty = qtyOf(p.id);
-            const soldOut = !p.is_available || Number(p.stock_qty) <= 0;
+            const sizes = variantsOf(p.id);
+            const active = selectedVariant(p.id);
+            const qty = qtyOf(p.id, active?.id ?? null);
+            const price = Number(active ? active.price : p.price);
+            const mrp = active ? active.mrp : p.mrp;
+            const soldOut = active
+              ? !p.is_available || Number(active.stock_qty) <= 0
+              : !p.is_available || Number(p.stock_qty) <= 0;
             return (
               <div
                 key={p.id}
@@ -143,13 +182,33 @@ function StorePage() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold">{p.product_name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {p.unit_qty} {(p.units as { short_name?: string } | null)?.short_name}
+                    {active
+                      ? active.label
+                      : `${p.unit_qty} ${(p.units as { short_name?: string } | null)?.short_name ?? ""}`}
                   </p>
+                  {sizes.length > 1 ? (
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                      {sizes.map((v) => (
+                        <button
+                          key={v.id}
+                          onClick={() => setChosen((c) => ({ ...c, [p.id]: v.id }))}
+                          className={
+                            "rounded-full border px-2 py-0.5 text-[11px] font-semibold " +
+                            (active?.id === v.id
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border text-muted-foreground")
+                          }
+                        >
+                          {v.label}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
                   <p className="mt-0.5 font-display font-bold text-primary">
-                    {inr(p.price)}
-                    {p.mrp ? (
+                    {inr(price)}
+                    {mrp ? (
                       <span className="ml-2 text-xs font-normal text-muted-foreground line-through">
-                        {inr(p.mrp)}
+                        {inr(mrp)}
                       </span>
                     ) : null}
                   </p>
@@ -164,7 +223,7 @@ function StorePage() {
                   <div className="flex items-center gap-2 rounded-full border border-primary px-1">
                     <button
                       className="grid size-7 place-items-center text-primary"
-                      onClick={() => cart.setQty(p.id, qty - 1)}
+                      onClick={() => cart.setQty(lineKey({ productId: p.id, variantId: active?.id ?? null }), qty - 1)}
                       aria-label="Decrease"
                     >
                       <Minus className="size-4" />
@@ -172,7 +231,7 @@ function StorePage() {
                     <span className="w-4 text-center text-sm font-bold">{qty}</span>
                     <button
                       className="grid size-7 place-items-center text-primary"
-                      onClick={() => cart.setQty(p.id, qty + 1)}
+                      onClick={() => cart.setQty(lineKey({ productId: p.id, variantId: active?.id ?? null }), qty + 1)}
                       aria-label="Increase"
                     >
                       <Plus className="size-4" />

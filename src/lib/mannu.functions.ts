@@ -10,7 +10,11 @@ const placeOrderInput = z.object({
   recipientName: z.string().trim().max(60).optional(),
   recipientPhone: z.string().trim().max(15).optional(),
   items: z
-    .array(z.object({ productId: z.string().uuid(), qty: z.number().min(1).max(50) }))
+    .array(z.object({
+        productId: z.string().uuid(),
+        variantId: z.string().uuid().nullish(),
+        qty: z.number().min(1).max(50),
+      }))
     .min(1)
     .max(40),
 });
@@ -19,7 +23,11 @@ const quoteInput = z.object({
   addressId: z.string().uuid(),
   couponCode: z.string().trim().max(24).optional(),
   items: z
-    .array(z.object({ productId: z.string().uuid(), qty: z.number().min(1).max(50) }))
+    .array(z.object({
+        productId: z.string().uuid(),
+        variantId: z.string().uuid().nullish(),
+        qty: z.number().min(1).max(50),
+      }))
     .min(1)
     .max(40),
 });

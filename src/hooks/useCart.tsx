@@ -9,7 +9,14 @@ export type CartItem = {
   storeId: string;
   storeName: string;
   imageUrl?: string | null;
+  variantId?: string | null;
+  variantLabel?: string | null;
 };
+
+/** Cart lines are unique per product + selected size. */
+export function lineKey(i: { productId: string; variantId?: string | null }) {
+  return `${i.productId}:${i.variantId ?? ""}`;
+}
 
 type CartValue = {
   items: CartItem[];
@@ -18,7 +25,7 @@ type CartValue = {
   count: number;
   subtotal: number;
   add: (item: Omit<CartItem, "qty">, qty?: number) => { ok: boolean; conflict?: string };
-  setQty: (productId: string, qty: number) => void;
+  setQty: (key: string, qty: number) => void;
   clear: () => void;
   replaceWith: (item: Omit<CartItem, "qty">) => void;
 };
@@ -60,21 +67,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
         return { ok: false, conflict: storeName ?? "another store" };
       }
       setItems((prev) => {
-        const found = prev.find((p) => p.productId === item.productId);
+        const key = lineKey(item);
+        const found = prev.find((p) => lineKey(p) === key);
         if (found) {
-          return prev.map((p) =>
-            p.productId === item.productId ? { ...p, qty: p.qty + qty } : p,
-          );
+          return prev.map((p) => (lineKey(p) === key ? { ...p, qty: p.qty + qty } : p));
         }
         return [...prev, { ...item, qty }];
       });
       return { ok: true };
     },
-    setQty: (productId, qty) =>
+    setQty: (key, qty) =>
       setItems((prev) =>
         qty <= 0
-          ? prev.filter((p) => p.productId !== productId)
-          : prev.map((p) => (p.productId === productId ? { ...p, qty } : p)),
+          ? prev.filter((p) => lineKey(p) !== key)
+          : prev.map((p) => (lineKey(p) === key ? { ...p, qty } : p)),
       ),
     clear: () => setItems([]),
     replaceWith: (item) => setItems([{ ...item, qty: 1 }]),
