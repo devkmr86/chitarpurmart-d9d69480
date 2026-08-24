@@ -19,6 +19,13 @@ import { inr, STATUS_LABEL } from "@/lib/mannu";
 import { requestStorePayout } from "@/lib/mannu.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { startOrderAlarm } from "@/lib/sound";
+import {
+  VariantManager,
+  VariantRepeater,
+  draftsToRows,
+  emptyVariant,
+  type VariantDraft,
+} from "@/components/app/VariantManager";
 
 const OOS_KEY = "mannu-oos";
 
@@ -337,6 +344,7 @@ function SellerPanel() {
                       void qc.invalidateQueries({ queryKey: ["seller-products"] });
                     }}
                   />
+                  <VariantManager productId={p.id} productName={p.product_name} />
                   {p.is_available ? (
                     <Button size="sm" variant="ghost" onClick={() => void markOutForToday(p.id)}>
                       Aaj ke liye Khatam
@@ -362,6 +370,7 @@ function ProductDialog({ storeId, onSaved }: { storeId: string; onSaved: () => v
   const [stock, setStock] = useState("10");
   const [unitQty, setUnitQty] = useState("1");
   const [unitId, setUnitId] = useState("");
+  const [variants, setVariants] = useState<VariantDraft[]>([]);
 
   const { data: units } = useQuery({
     queryKey: ["units"],
@@ -374,21 +383,35 @@ function ProductDialog({ storeId, onSaved }: { storeId: string; onSaved: () => v
   async function save() {
     if (!name.trim() || !price) { toast.error("Enter product name and price"); return; }
     setSaving(true);
-    const { error } = await supabase.from("products").insert({
-      store_id: storeId,
-      product_name: name.trim(),
-      price: Number(price),
-      mrp: mrp ? Number(mrp) : null,
-      stock_qty: Number(stock),
-      unit_qty: Number(unitQty),
-      unit_id: unitId || null,
-    });
+    const { data: created, error } = await supabase
+      .from("products")
+      .insert({
+        store_id: storeId,
+        product_name: name.trim(),
+        price: Number(price),
+        mrp: mrp ? Number(mrp) : null,
+        stock_qty: Number(stock),
+        unit_qty: Number(unitQty),
+        unit_id: unitId || null,
+      })
+      .select("id")
+      .single();
+    if (error || !created) {
+      setSaving(false);
+      toast.error(error?.message ?? "Product save nahi hua");
+      return;
+    }
+    const rows = draftsToRows(created.id, variants);
+    if (rows.length) {
+      const { error: vErr } = await supabase.from("product_variants").insert(rows);
+      if (vErr) toast.error(`Sizes save nahi hue: ${vErr.message}`);
+    }
     setSaving(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Product added");
+    toast.success(rows.length ? `Product + ${rows.length} size add ho gaye` : "Product added");
     setName("");
     setPrice("");
     setMrp("");
+    setVariants([]);
     setOpen(false);
     onSaved();
   }
@@ -400,7 +423,7 @@ function ProductDialog({ storeId, onSaved }: { storeId: string; onSaved: () => v
           <Plus className="size-4" /> Add product
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>New product</DialogTitle>
         </DialogHeader>
@@ -441,6 +464,16 @@ function ProductDialog({ storeId, onSaved }: { storeId: string; onSaved: () => v
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div className="rounded-xl border border-dashed border-border p-3">
+            <p className="mb-2 text-sm font-semibold">Ek se zyada size bechna hai?</p>
+            {variants.length === 0 ? (
+              <Button variant="outline" className="w-full gap-2" onClick={() => setVariants([emptyVariant()])}>
+                <Plus className="size-4" /> Add Size
+              </Button>
+            ) : (
+              <VariantRepeater rows={variants} onChange={setVariants} />
+            )}
           </div>
           <Button className="w-full" onClick={save} disabled={saving}>
             {saving ? <Loader2 className="size-4 animate-spin" /> : "Add product"}
