@@ -269,12 +269,12 @@ function Checkout() {
             {([
               { key: "COD", label: "Cash on Delivery", hint: "Rider ko delivery par cash dein" },
               { key: "WALLET", label: `Mera Wallet · ${inr(walletBalance)}`, hint: "Instant wallet se payment" },
-              { key: "ONLINE", label: "Pay Online (UPI / QR)", hint: business?.upi_id ?? "UPI" },
+              { key: "ONLINE", label: "Pay Online (UPI / QR)", hint: "PhonePe · GPay · Paytm · BHIM" },
             ] as const).map((m) => (
               <button
                 key={m.key}
                 onClick={() => setMode(m.key)}
-                disabled={m.key === "WALLET" && walletBalance < cart.subtotal}
+                disabled={m.key === "WALLET" && walletBalance < payable}
                 className={`w-full rounded-xl border p-3 text-left disabled:opacity-50 ${
                   mode === m.key ? "border-primary bg-primary/5" : "border-border"
                 }`}
@@ -286,36 +286,29 @@ function Checkout() {
           </div>
           {mode === "ONLINE" ? (
             <div className="mt-3 rounded-xl border border-border p-3 text-center">
-              {business?.qr_image_url ? (
-                <img
-                  src={business.qr_image_url}
-                  alt={`${brand} payment QR code`}
-                  className="mx-auto size-40 rounded-lg object-contain"
-                  loading="lazy"
-                />
-              ) : null}
-              {business?.upi_id ? (
-                <>
-                  <p className="mt-2 text-sm font-semibold">{business.upi_id}</p>
-                  <a
-                    className="mt-2 inline-block rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
-                    href={upiIntent({
-                      upiId: business.upi_id,
-                      name: brand,
-                      amount: cart.subtotal,
-                      note: "Mannu order",
-                    })}
-                  >
-                    Pay with UPI app
-                  </a>
-                </>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Online payment details abhi set nahi hain — COD chunein.
-                </p>
-              )}
+              <img
+                src={
+                  business?.qr_image_url ??
+                  `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(upiLink)}`
+                }
+                alt={`${brand} UPI payment QR code`}
+                className="mx-auto size-40 rounded-lg object-contain"
+                loading="lazy"
+              />
+              <p className="mt-2 text-sm font-semibold">{upiId}</p>
+              <p className="text-xs text-muted-foreground">Amount: {inr(payable)}</p>
+              <a
+                className="mt-2 inline-block rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+                href={upiLink}
+              >
+                Pay with UPI app
+              </a>
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Payment ke baad neeche &quot;Place order&quot; dabaayein.
+              </p>
             </div>
           ) : null}
+
         </section>
 
         <Button className="h-12 w-full text-base" onClick={handlePlace} disabled={placing}>
