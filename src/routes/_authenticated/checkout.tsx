@@ -37,6 +37,8 @@ function Checkout() {
   const qc = useQueryClient();
   const submit = useServerFn(placeOrder);
   const payWallet = useServerFn(payOrderFromWallet);
+  const getQuote = useServerFn(quoteOrder);
+
   const { business, brand } = useBusiness();
   const [addressId, setAddressId] = useState<string | null>(null);
   const [coupon, setCoupon] = useState("");
