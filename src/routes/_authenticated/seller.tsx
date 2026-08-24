@@ -465,6 +465,16 @@ function ProductDialog({ storeId, onSaved }: { storeId: string; onSaved: () => v
               </SelectContent>
             </Select>
           </div>
+          <div className="rounded-xl border border-dashed border-border p-3">
+            <p className="mb-2 text-sm font-semibold">Ek se zyada size bechna hai?</p>
+            {variants.length === 0 ? (
+              <Button variant="outline" className="w-full gap-2" onClick={() => setVariants([emptyVariant()])}>
+                <Plus className="size-4" /> Add Size
+              </Button>
+            ) : (
+              <VariantRepeater rows={variants} onChange={setVariants} />
+            )}
+          </div>
           <Button className="w-full" onClick={save} disabled={saving}>
             {saving ? <Loader2 className="size-4 animate-spin" /> : "Add product"}
           </Button>
