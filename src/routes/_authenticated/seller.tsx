@@ -423,7 +423,7 @@ function ProductDialog({ storeId, onSaved }: { storeId: string; onSaved: () => v
           <Plus className="size-4" /> Add product
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>New product</DialogTitle>
         </DialogHeader>
