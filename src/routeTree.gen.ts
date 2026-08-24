@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CartRouteImport } from './routes/cart'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/admin/route'
 import { Route as AuthenticatedCheckoutRouteImport } from './routes/_authenticated/checkout'
 import { Route as AuthenticatedDeliveryRouteImport } from './routes/_authenticated/delivery'
@@ -58,6 +59,11 @@ const AuthRoute = AuthRouteImport.update({
 const CartRoute = CartRouteImport.update({
   id: '/cart',
   path: '/cart',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAdminRouteRoute = AuthenticatedAdminRouteRouteImport.update({
@@ -182,6 +188,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
   '/cart': typeof CartRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/delivery': typeof AuthenticatedDeliveryRoute
@@ -209,6 +216,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
   '/cart': typeof CartRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/delivery': typeof AuthenticatedDeliveryRoute
   '/orders': typeof AuthenticatedOrdersRoute
@@ -237,6 +245,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
   '/cart': typeof CartRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/_authenticated/checkout': typeof AuthenticatedCheckoutRoute
   '/_authenticated/delivery': typeof AuthenticatedDeliveryRoute
@@ -266,6 +275,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/auth'
     | '/cart'
+    | '/reset-password'
     | '/admin'
     | '/checkout'
     | '/delivery'
@@ -293,6 +303,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/auth'
     | '/cart'
+    | '/reset-password'
     | '/checkout'
     | '/delivery'
     | '/orders'
@@ -320,6 +331,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/auth'
     | '/cart'
+    | '/reset-password'
     | '/_authenticated/admin'
     | '/_authenticated/checkout'
     | '/_authenticated/delivery'
@@ -349,6 +361,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AuthRoute: typeof AuthRoute
   CartRoute: typeof CartRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   StoreStoreIdRoute: typeof StoreStoreIdRoute
 }
 
@@ -387,6 +400,13 @@ declare module '@tanstack/react-router' {
       path: '/cart'
       fullPath: '/cart'
       preLoaderRoute: typeof CartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin': {
@@ -606,6 +626,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   AuthRoute: AuthRoute,
   CartRoute: CartRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   StoreStoreIdRoute: StoreStoreIdRoute,
 }
 export const routeTree = rootRouteImport
