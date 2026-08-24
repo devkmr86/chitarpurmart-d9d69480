@@ -385,7 +385,7 @@ function ProductDialog({
   onSaved,
 }: {
   storeId: string;
-  allowedUnits?: string[];
+  allowedUnits?: string[] | undefined;
   onSaved: () => void;
 }) {
   const [open, setOpen] = useState(false);

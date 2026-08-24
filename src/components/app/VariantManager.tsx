@@ -25,7 +25,7 @@ export function emptyVariant(): VariantDraft {
 }
 
 /** Units list, optionally narrowed to the units a category allows. */
-export function useUnits(allowed?: string[]) {
+export function useUnits(allowed?: string[] | undefined) {
   const q = useQuery({
     queryKey: ["units"],
     queryFn: async () => {
@@ -49,7 +49,7 @@ export function VariantRepeater({
 }: {
   rows: VariantDraft[];
   onChange: (rows: VariantDraft[]) => void;
-  allowedUnits?: string[];
+  allowedUnits?: string[] | undefined;
 }) {
   const { data: units } = useUnits(allowedUnits);
 

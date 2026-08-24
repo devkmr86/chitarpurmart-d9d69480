@@ -4,7 +4,7 @@ type AnySupabase = {
   from: (table: string) => any;
 };
 
-export type QuoteItem = { productId: string; qty: number; variantId?: string | null };
+export type QuoteItem = { productId: string; qty: number; variantId?: string | null | undefined };
 
 export type OrderQuote = {
   subtotal: number;
