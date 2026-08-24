@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
-import { useCart } from "@/hooks/useCart";
+import { useCart, lineKey } from "@/hooks/useCart";
 import { useAuth } from "@/hooks/useAuth";
 import { inr } from "@/lib/mannu";
 
@@ -41,7 +41,7 @@ function CartPage() {
             <div className="space-y-2">
               {cart.items.map((i) => (
                 <div
-                  key={i.productId}
+                  key={lineKey(i)}
                   className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3"
                 >
                   <div className="grid size-12 shrink-0 place-items-center rounded-xl bg-secondary text-lg">
@@ -49,13 +49,13 @@ function CartPage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold">{i.name}</p>
-                    <p className="text-xs text-muted-foreground">{i.unitLabel}</p>
+                    <p className="text-xs text-muted-foreground">{i.variantLabel ?? i.unitLabel}</p>
                     <p className="font-display font-bold text-primary">{inr(i.price * i.qty)}</p>
                   </div>
                   <div className="flex items-center gap-2 rounded-full border border-primary px-1">
                     <button
                       className="grid size-7 place-items-center text-primary"
-                      onClick={() => cart.setQty(i.productId, i.qty - 1)}
+                      onClick={() => cart.setQty(lineKey(i), i.qty - 1)}
                       aria-label="Decrease"
                     >
                       {i.qty === 1 ? <Trash2 className="size-4" /> : <Minus className="size-4" />}
@@ -63,7 +63,7 @@ function CartPage() {
                     <span className="w-4 text-center text-sm font-bold">{i.qty}</span>
                     <button
                       className="grid size-7 place-items-center text-primary"
-                      onClick={() => cart.setQty(i.productId, i.qty + 1)}
+                      onClick={() => cart.setQty(lineKey(i), i.qty + 1)}
                       aria-label="Increase"
                     >
                       <Plus className="size-4" />
