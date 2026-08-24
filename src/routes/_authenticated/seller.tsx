@@ -344,6 +344,7 @@ function SellerPanel() {
                       void qc.invalidateQueries({ queryKey: ["seller-products"] });
                     }}
                   />
+                  <VariantManager productId={p.id} productName={p.product_name} />
                   {p.is_available ? (
                     <Button size="sm" variant="ghost" onClick={() => void markOutForToday(p.id)}>
                       Aaj ke liye Khatam
