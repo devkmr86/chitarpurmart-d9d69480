@@ -383,21 +383,35 @@ function ProductDialog({ storeId, onSaved }: { storeId: string; onSaved: () => v
   async function save() {
     if (!name.trim() || !price) { toast.error("Enter product name and price"); return; }
     setSaving(true);
-    const { error } = await supabase.from("products").insert({
-      store_id: storeId,
-      product_name: name.trim(),
-      price: Number(price),
-      mrp: mrp ? Number(mrp) : null,
-      stock_qty: Number(stock),
-      unit_qty: Number(unitQty),
-      unit_id: unitId || null,
-    });
+    const { data: created, error } = await supabase
+      .from("products")
+      .insert({
+        store_id: storeId,
+        product_name: name.trim(),
+        price: Number(price),
+        mrp: mrp ? Number(mrp) : null,
+        stock_qty: Number(stock),
+        unit_qty: Number(unitQty),
+        unit_id: unitId || null,
+      })
+      .select("id")
+      .single();
+    if (error || !created) {
+      setSaving(false);
+      toast.error(error?.message ?? "Product save nahi hua");
+      return;
+    }
+    const rows = draftsToRows(created.id, variants);
+    if (rows.length) {
+      const { error: vErr } = await supabase.from("product_variants").insert(rows);
+      if (vErr) toast.error(`Sizes save nahi hue: ${vErr.message}`);
+    }
     setSaving(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Product added");
+    toast.success(rows.length ? `Product + ${rows.length} size add ho gaye` : "Product added");
     setName("");
     setPrice("");
     setMrp("");
+    setVariants([]);
     setOpen(false);
     onSaved();
   }
