@@ -14,7 +14,7 @@ import { Map } from "@/components/app/Map";
 import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/hooks/useAuth";
 import { inr, RANCHI_CENTER } from "@/lib/mannu";
-import { placeOrder, payOrderFromWallet } from "@/lib/mannu.functions";
+import { placeOrder, payOrderFromWallet, quoteOrder } from "@/lib/mannu.functions";
 import { useBusiness, upiIntent } from "@/hooks/useBusiness";
 import { playSuccessChime } from "@/lib/sound";
 
@@ -37,6 +37,8 @@ function Checkout() {
   const qc = useQueryClient();
   const submit = useServerFn(placeOrder);
   const payWallet = useServerFn(payOrderFromWallet);
+  const getQuote = useServerFn(quoteOrder);
+
   const { business, brand } = useBusiness();
   const [addressId, setAddressId] = useState<string | null>(null);
   const [coupon, setCoupon] = useState("");
@@ -68,6 +70,30 @@ function Checkout() {
       (await supabase.from("wallets").select("balance").eq("user_id", user!.id).maybeSingle()).data,
   });
   const walletBalance = Number(wallet?.balance ?? 0);
+
+  const cartKey = cart.items.map((i) => `${i.productId}:${i.qty}`).join(",");
+  const { data: quote, error: quoteError } = useQuery({
+    queryKey: ["order-quote", addressId, cartKey, coupon.trim().toUpperCase()],
+    enabled: !!addressId && cart.items.length > 0,
+    retry: false,
+    queryFn: () =>
+      getQuote({
+        data: {
+          addressId: addressId!,
+          couponCode: coupon.trim() ? coupon.trim() : undefined,
+          items: cart.items.map((i) => ({ productId: i.productId, qty: i.qty })),
+        },
+      }),
+  });
+  const payable = quote?.total ?? cart.subtotal;
+  const upiId = business?.upi_id?.trim() || "764384019@ybl";
+  const upiLink = upiIntent({
+    upiId,
+    name: brand,
+    amount: payable,
+    note: "Mannu order",
+  });
+
 
   async function handlePlace() {
     if (!addressId) { toast.error("Add a delivery address first"); return; }
@@ -139,7 +165,7 @@ function Checkout() {
         </section>
 
         <section className="rounded-2xl border border-border bg-card p-4">
-          <h2 className="font-display font-bold">Order summary</h2>
+          <h2 className="font-display font-bold">Bill Summary</h2>
           <div className="mt-3 space-y-1.5">
             {cart.items.map((i) => (
               <div key={i.productId} className="flex justify-between text-sm">
@@ -151,14 +177,48 @@ function Checkout() {
             ))}
             <div className="flex justify-between border-t border-border pt-2 text-sm font-semibold">
               <span>Item total</span>
-              <span>{inr(cart.subtotal)}</span>
+              <span>{inr(quote?.subtotal ?? cart.subtotal)}</span>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Delivery charge, platform fee and any discount are calculated securely when the
-              order is placed.
-            </p>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Delivery fee</span>
+              <span>
+                {quote ? (
+                  quote.deliveryCharge === 0 ? (
+                    <span className="font-semibold text-primary">FREE</span>
+                  ) : (
+                    inr(quote.deliveryCharge)
+                  )
+                ) : (
+                  "—"
+                )}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Platform fee</span>
+              <span>{quote ? inr(quote.platformFee) : "—"}</span>
+            </div>
+            {quote && quote.discount > 0 ? (
+              <div className="flex justify-between text-sm text-primary">
+                <span>Coupon {quote.couponCode ?? ""}</span>
+                <span>-{inr(quote.discount)}</span>
+              </div>
+            ) : null}
+            <div className="flex justify-between border-t border-dashed border-border pt-2 text-base font-bold">
+              <span>To pay</span>
+              <span>{inr(payable)}</span>
+            </div>
+            {quoteError ? (
+              <p className="text-xs text-destructive">{quoteError.message}</p>
+            ) : quote ? (
+              <p className="text-[11px] text-muted-foreground">
+                Distance {quote.distanceKm} km{quote.isMulti ? " · multi-store pickup" : ""}
+              </p>
+            ) : (
+              <p className="text-[11px] text-muted-foreground">Calculating charges…</p>
+            )}
           </div>
         </section>
+
 
         <section className="rounded-2xl border border-border bg-card p-4">
           <h2 className="font-display font-bold">Delivery contact details</h2>
@@ -209,12 +269,12 @@ function Checkout() {
             {([
               { key: "COD", label: "Cash on Delivery", hint: "Rider ko delivery par cash dein" },
               { key: "WALLET", label: `Mera Wallet · ${inr(walletBalance)}`, hint: "Instant wallet se payment" },
-              { key: "ONLINE", label: "Pay Online (UPI / QR)", hint: business?.upi_id ?? "UPI" },
+              { key: "ONLINE", label: "Pay Online (UPI / QR)", hint: "PhonePe · GPay · Paytm · BHIM" },
             ] as const).map((m) => (
               <button
                 key={m.key}
                 onClick={() => setMode(m.key)}
-                disabled={m.key === "WALLET" && walletBalance < cart.subtotal}
+                disabled={m.key === "WALLET" && walletBalance < payable}
                 className={`w-full rounded-xl border p-3 text-left disabled:opacity-50 ${
                   mode === m.key ? "border-primary bg-primary/5" : "border-border"
                 }`}
@@ -226,41 +286,35 @@ function Checkout() {
           </div>
           {mode === "ONLINE" ? (
             <div className="mt-3 rounded-xl border border-border p-3 text-center">
-              {business?.qr_image_url ? (
-                <img
-                  src={business.qr_image_url}
-                  alt={`${brand} payment QR code`}
-                  className="mx-auto size-40 rounded-lg object-contain"
-                  loading="lazy"
-                />
-              ) : null}
-              {business?.upi_id ? (
-                <>
-                  <p className="mt-2 text-sm font-semibold">{business.upi_id}</p>
-                  <a
-                    className="mt-2 inline-block rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
-                    href={upiIntent({
-                      upiId: business.upi_id,
-                      name: brand,
-                      amount: cart.subtotal,
-                      note: "Mannu order",
-                    })}
-                  >
-                    Pay with UPI app
-                  </a>
-                </>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Online payment details abhi set nahi hain — COD chunein.
-                </p>
-              )}
+              <img
+                src={
+                  business?.qr_image_url ??
+                  `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(upiLink)}`
+                }
+                alt={`${brand} UPI payment QR code`}
+                className="mx-auto size-40 rounded-lg object-contain"
+                loading="lazy"
+              />
+              <p className="mt-2 text-sm font-semibold">{upiId}</p>
+              <p className="text-xs text-muted-foreground">Amount: {inr(payable)}</p>
+              <a
+                className="mt-2 inline-block rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+                href={upiLink}
+              >
+                Pay with UPI app
+              </a>
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Payment ke baad neeche &quot;Place order&quot; dabaayein.
+              </p>
             </div>
           ) : null}
+
         </section>
 
         <Button className="h-12 w-full text-base" onClick={handlePlace} disabled={placing}>
-          {placing ? <Loader2 className="size-4 animate-spin" /> : `Place order (${mode})`}
+          {placing ? <Loader2 className="size-4 animate-spin" /> : `Place order • ${inr(payable)}`}
         </Button>
+
       </main>
     </AppShell>
   );
