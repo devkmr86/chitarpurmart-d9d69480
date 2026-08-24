@@ -22,7 +22,7 @@ export const Route = createFileRoute("/reset-password")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: ResetPassword;
+  component: ResetPassword,
 });
 
 function ResetPassword() {
