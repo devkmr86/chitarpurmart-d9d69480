@@ -82,31 +82,6 @@ function BusinessCenter() {
       (await supabase.from("business_settings").select("*").limit(1).maybeSingle()).data,
   });
 
-  const { data: pending } = useQuery({
-    queryKey: ["admin-pending-sellers"],
-    refetchInterval: 20000,
-    queryFn: async () =>
-      (
-        await supabase
-          .from("role_requests")
-          .select("*, categories(name)")
-          .eq("requested_role", "SELLER")
-          .eq("status", "PENDING")
-          .order("created_at")
-      ).data ?? [],
-  });
-
-  const { data: stores } = useQuery({
-    queryKey: ["admin-store-verification"],
-    queryFn: async () =>
-      (await supabase.from("stores").select("id,store_name,fssai_number,is_verified").order("store_name")).data ?? [],
-  });
-
-  const { data: categories } = useQuery({
-    queryKey: ["admin-category-rules"],
-    queryFn: async () =>
-      (await supabase.from("categories").select("id,name,allowed_units,attributes").order("sort_order")).data ?? [],
-  });
 
   useEffect(() => {
     if (!row) return;
