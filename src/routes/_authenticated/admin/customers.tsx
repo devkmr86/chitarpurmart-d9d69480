@@ -109,6 +109,8 @@ function CustomersPage() {
         />
       </div>
 
+      <PasswordResetRequests />
+
       <AdminCard className="mt-4">
         <p className="text-sm font-semibold">WhatsApp offer message</p>
         <Textarea
