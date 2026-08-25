@@ -1,21 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { BadgeCheck, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout, AdminCard } from "@/components/admin/AdminLayout";
 import { ImageUpload, MoneyInput } from "@/components/admin/ImageUpload";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { logAdminAction } from "@/lib/admin-audit";
-import { reviewRoleRequest } from "@/lib/mannu.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/business")({
   head: () => ({
@@ -30,13 +26,6 @@ export const Route = createFileRoute("/_authenticated/admin/business")({
   }),
   component: BusinessCenter,
 });
-
-const UNITS = ["Kg", "Gram", "Darjan", "Pcs", "Litre", "Plate"];
-const ATTRS: Array<{ key: string; label: string }> = [
-  { key: "sizes", label: "Sizes" },
-  { key: "colors", label: "Colors" },
-  { key: "veg_badge", label: "Pure Veg / Non-Veg badge" },
-];
 
 type Form = {
   brand_name: string;
@@ -74,7 +63,6 @@ function BusinessCenter() {
   const qc = useQueryClient();
   const [form, setForm] = useState<Form>(EMPTY);
   const [saving, setSaving] = useState(false);
-  const review = useServerFn(reviewRoleRequest);
 
   const { data: row } = useQuery({
     queryKey: ["business-settings"],
@@ -82,31 +70,6 @@ function BusinessCenter() {
       (await supabase.from("business_settings").select("*").limit(1).maybeSingle()).data,
   });
 
-  const { data: pending } = useQuery({
-    queryKey: ["admin-pending-sellers"],
-    refetchInterval: 20000,
-    queryFn: async () =>
-      (
-        await supabase
-          .from("role_requests")
-          .select("*, categories(name)")
-          .eq("requested_role", "SELLER")
-          .eq("status", "PENDING")
-          .order("created_at")
-      ).data ?? [],
-  });
-
-  const { data: stores } = useQuery({
-    queryKey: ["admin-store-verification"],
-    queryFn: async () =>
-      (await supabase.from("stores").select("id,store_name,fssai_number,is_verified").order("store_name")).data ?? [],
-  });
-
-  const { data: categories } = useQuery({
-    queryKey: ["admin-category-rules"],
-    queryFn: async () =>
-      (await supabase.from("categories").select("id,name,allowed_units,attributes").order("sort_order")).data ?? [],
-  });
 
   useEffect(() => {
     if (!row) return;
@@ -162,42 +125,8 @@ function BusinessCenter() {
     void qc.invalidateQueries({ queryKey: ["business-settings"] });
   }
 
-  async function decide(id: string, approve: boolean) {
-    try {
-      await review({ data: { requestId: id, approve } });
-      toast.success(approve ? "Store approve ho gayi" : "Application reject ho gayi");
-      void qc.invalidateQueries({ queryKey: ["admin-pending-sellers"] });
-      void qc.invalidateQueries({ queryKey: ["admin-store-verification"] });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed");
-    }
-  }
 
-  async function toggleVerified(id: string, v: boolean) {
-    const { error } = await supabase.from("stores").update({ is_verified: v }).eq("id", id);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    void logAdminAction(v ? "VERIFY" : "UNVERIFY", "stores", id, {});
-    void qc.invalidateQueries({ queryKey: ["admin-store-verification"] });
-  }
 
-  async function saveRules(
-    id: string,
-    allowed: string[],
-    attributes: Record<string, boolean>,
-  ) {
-    const { error } = await supabase
-      .from("categories")
-      .update({ allowed_units: allowed as never, attributes: attributes as never })
-      .eq("id", id);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    void qc.invalidateQueries({ queryKey: ["admin-category-rules"] });
-  }
 
   const set = (k: keyof Form, v: string | null) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -216,8 +145,6 @@ function BusinessCenter() {
           <TabsTrigger value="legal">Brand & legal</TabsTrigger>
           <TabsTrigger value="payment">Payment & QR</TabsTrigger>
           <TabsTrigger value="pricing">Delivery & commission</TabsTrigger>
-          <TabsTrigger value="verify">Store verification</TabsTrigger>
-          <TabsTrigger value="rules">Category rules</TabsTrigger>
         </TabsList>
 
         <TabsContent value="legal" className="mt-4 grid gap-3 lg:grid-cols-2">
@@ -329,125 +256,6 @@ function BusinessCenter() {
               <MoneyInput value={form.min_payout_limit} onChange={(v) => set("min_payout_limit", v)} />
             </div>
           </AdminCard>
-        </TabsContent>
-
-        <TabsContent value="verify" className="mt-4 space-y-3">
-          <AdminCard>
-            <p className="font-semibold">Pending store submissions ({pending?.length ?? 0})</p>
-            <div className="mt-3 grid gap-3 lg:grid-cols-2">
-              {(pending ?? []).map((r) => (
-                <div key={r.id} className="rounded-xl border border-border p-3 text-sm">
-                  <p className="font-display font-bold">{r.store_name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {(r.categories as { name?: string } | null)?.name ?? "—"} · {r.address_line}
-                  </p>
-                  <p className="mt-1 text-xs">FSSAI: {r.fssai_number || "—"}</p>
-                  {r.fssai_doc_url ? (
-                    <a
-                      href={r.fssai_doc_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary"
-                    >
-                      Certificate dekhein <ExternalLink className="size-3" />
-                    </a>
-                  ) : null}
-                  <div className="mt-3 flex gap-2">
-                    <Button size="sm" className="flex-1" onClick={() => void decide(r.id, true)}>
-                      Approve Karein
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      className="flex-1"
-                      onClick={() => void decide(r.id, false)}
-                    >
-                      Reject Karein
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              {pending?.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No pending submissions.</p>
-              ) : null}
-            </div>
-          </AdminCard>
-
-          <AdminCard>
-            <p className="font-semibold">Verified stores</p>
-            <div className="mt-3 space-y-2">
-              {(stores ?? []).map((s) => (
-                <div key={s.id} className="flex items-center justify-between gap-3 border-b border-border pb-2 text-sm last:border-0">
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{s.store_name}</p>
-                    <p className="text-xs text-muted-foreground">FSSAI: {s.fssai_number || "—"}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {s.is_verified ? (
-                      <Badge variant="secondary" className="gap-1">
-                        <BadgeCheck className="size-3" /> Verified
-                      </Badge>
-                    ) : null}
-                    <Switch
-                      checked={s.is_verified}
-                      onCheckedChange={(v) => void toggleVerified(s.id, v)}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </AdminCard>
-        </TabsContent>
-
-        <TabsContent value="rules" className="mt-4 grid gap-3 lg:grid-cols-2">
-          {(categories ?? []).map((c) => {
-            const allowed = Array.isArray(c.allowed_units) ? (c.allowed_units as string[]) : [];
-            const attributes = (c.attributes ?? {}) as Record<string, boolean>;
-            return (
-              <AdminCard key={c.id}>
-                <p className="font-semibold">{c.name}</p>
-                <p className="mt-2 text-xs text-muted-foreground">Allowed units</p>
-                <div className="mt-1 flex flex-wrap gap-2">
-                  {UNITS.map((u) => {
-                    const on = allowed.includes(u);
-                    return (
-                      <button
-                        key={u}
-                        onClick={() =>
-                          void saveRules(
-                            c.id,
-                            on ? allowed.filter((x) => x !== u) : [...allowed, u],
-                            attributes,
-                          )
-                        }
-                        className={
-                          on
-                            ? "rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground"
-                            : "rounded-full border border-border px-3 py-1 text-xs text-muted-foreground"
-                        }
-                      >
-                        {u}
-                      </button>
-                    );
-                  })}
-                </div>
-                <p className="mt-3 text-xs text-muted-foreground">Attributes</p>
-                <div className="mt-1 space-y-2">
-                  {ATTRS.map((a) => (
-                    <div key={a.key} className="flex items-center justify-between text-sm">
-                      <span>{a.label}</span>
-                      <Switch
-                        checked={Boolean(attributes[a.key])}
-                        onCheckedChange={(v) =>
-                          void saveRules(c.id, allowed, { ...attributes, [a.key]: v })
-                        }
-                      />
-                    </div>
-                  ))}
-                </div>
-              </AdminCard>
-            );
-          })}
         </TabsContent>
       </Tabs>
     </AdminLayout>
