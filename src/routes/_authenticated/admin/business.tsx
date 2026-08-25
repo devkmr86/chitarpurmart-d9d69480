@@ -1,21 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { BadgeCheck, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout, AdminCard } from "@/components/admin/AdminLayout";
 import { ImageUpload, MoneyInput } from "@/components/admin/ImageUpload";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { logAdminAction } from "@/lib/admin-audit";
-import { reviewRoleRequest } from "@/lib/mannu.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/business")({
   head: () => ({
@@ -30,13 +27,6 @@ export const Route = createFileRoute("/_authenticated/admin/business")({
   }),
   component: BusinessCenter,
 });
-
-const UNITS = ["Kg", "Gram", "Darjan", "Pcs", "Litre", "Plate"];
-const ATTRS: Array<{ key: string; label: string }> = [
-  { key: "sizes", label: "Sizes" },
-  { key: "colors", label: "Colors" },
-  { key: "veg_badge", label: "Pure Veg / Non-Veg badge" },
-];
 
 type Form = {
   brand_name: string;
