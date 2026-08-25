@@ -216,8 +216,6 @@ function BusinessCenter() {
           <TabsTrigger value="legal">Brand & legal</TabsTrigger>
           <TabsTrigger value="payment">Payment & QR</TabsTrigger>
           <TabsTrigger value="pricing">Delivery & commission</TabsTrigger>
-          <TabsTrigger value="verify">Store verification</TabsTrigger>
-          <TabsTrigger value="rules">Category rules</TabsTrigger>
         </TabsList>
 
         <TabsContent value="legal" className="mt-4 grid gap-3 lg:grid-cols-2">
