@@ -306,7 +306,10 @@ function PasswordField({
 function ForgotPassword() {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
+  const [resetPhone, setResetPhone] = useState("");
+  const [note, setNote] = useState("");
   const [sending, setSending] = useState(false);
+  const [requested, setRequested] = useState(false);
 
   async function send() {
     if (!isEmail(email)) { toast.error("Sahi email address daalein"); return; }
@@ -320,6 +323,19 @@ function ForgotPassword() {
     toast.success("Password reset link email par bhej diya gaya");
   }
 
+  async function requestByPhone() {
+    if (!isValidPhone(resetPhone)) { toast.error("10-digit mobile number daalein"); return; }
+    setSending(true);
+    const { error } = await supabase.from("password_reset_requests").insert({
+      phone: normalizePhone(resetPhone),
+      note: note.trim() || null,
+    });
+    setSending(false);
+    if (error) { toast.error(error.message); return; }
+    setRequested(true);
+    toast.success("Reset request bhej di gayi — admin jaldi naya password dega");
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -331,21 +347,61 @@ function ForgotPassword() {
         <DialogHeader>
           <DialogTitle>Reset your password</DialogTitle>
         </DialogHeader>
-        <div className="space-y-3">
-          <p className="text-xs text-muted-foreground">
-            Jis email se account bana hai wo daalein. Sirf phone number se bane account ke liye
-            support par WhatsApp karein.
-          </p>
-          <Input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@email.com"
-          />
-          <Button className="w-full" onClick={() => void send()} disabled={sending}>
-            {sending ? <Loader2 className="size-4 animate-spin" /> : "Send reset link"}
-          </Button>
-        </div>
+        <Tabs defaultValue="phone">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="phone">Phone number</TabsTrigger>
+            <TabsTrigger value="email">Email</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="phone" className="space-y-3 pt-4">
+            {requested ? (
+              <p className="text-sm text-muted-foreground">
+                Aapki request admin ko chali gayi hai. Naya password aapko call/WhatsApp par bata
+                diya jayega — uske baad login karke profile se badal lein.
+              </p>
+            ) : (
+              <>
+                <p className="text-xs text-muted-foreground">
+                  Sirf mobile number se bana account? Yahan number daalein — admin verify karke naya
+                  password set kar dega.
+                </p>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    inputMode="numeric"
+                    value={resetPhone}
+                    onChange={(e) => setResetPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                    placeholder="9876543210"
+                    className="pl-9"
+                  />
+                </div>
+                <Input
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="Naam / koi note (optional)"
+                />
+                <Button className="w-full" onClick={() => void requestByPhone()} disabled={sending}>
+                  {sending ? <Loader2 className="size-4 animate-spin" /> : "Send reset request"}
+                </Button>
+              </>
+            )}
+          </TabsContent>
+
+          <TabsContent value="email" className="space-y-3 pt-4">
+            <p className="text-xs text-muted-foreground">
+              Jis email se account bana hai wo daalein — reset link mail par aayega.
+            </p>
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@email.com"
+            />
+            <Button className="w-full" onClick={() => void send()} disabled={sending}>
+              {sending ? <Loader2 className="size-4 animate-spin" /> : "Send reset link"}
+            </Button>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
