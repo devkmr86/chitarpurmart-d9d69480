@@ -74,7 +74,6 @@ function BusinessCenter() {
   const qc = useQueryClient();
   const [form, setForm] = useState<Form>(EMPTY);
   const [saving, setSaving] = useState(false);
-  const review = useServerFn(reviewRoleRequest);
 
   const { data: row } = useQuery({
     queryKey: ["business-settings"],
