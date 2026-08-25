@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { MessageCircle, Phone, Search, Users } from "lucide-react";
+import { KeyRound, MessageCircle, Phone, Search, Users } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+import { adminResetUserPassword } from "@/lib/mannu.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout, AdminCard, StatCard } from "@/components/admin/AdminLayout";
 import { Input } from "@/components/ui/input";
@@ -180,5 +183,87 @@ function CustomersPage() {
         </div>
       </AdminCard>
     </AdminLayout>
+  );
+}
+
+function PasswordResetRequests() {
+  const qc = useQueryClient();
+  const resetPassword = useServerFn(adminResetUserPassword);
+  const [pw, setPw] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const { data: reqs } = useQuery({
+    queryKey: ["admin-password-resets"],
+    refetchInterval: 30000,
+    queryFn: async () =>
+      (
+        await supabase
+          .from("password_reset_requests")
+          .select("id,phone,note,status,created_at")
+          .eq("status", "PENDING")
+          .order("created_at", { ascending: false })
+      ).data ?? [],
+  });
+
+  async function apply(id: string, phone: string) {
+    const newPassword = (pw[id] ?? "").trim();
+    if (newPassword.length < 6) {
+      toast.error("Password kam se kam 6 characters ka ho");
+      return;
+    }
+    setBusy(id);
+    try {
+      await resetPassword({ data: { requestId: id, newPassword } });
+      toast.success(`Password set ho gaya — ${phone} ko bata dein`);
+      setPw((p) => ({ ...p, [id]: "" }));
+      void qc.invalidateQueries({ queryKey: ["admin-password-resets"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  if (!reqs?.length) return null;
+
+  return (
+    <AdminCard className="mt-4">
+      <p className="flex items-center gap-2 text-sm font-semibold">
+        <KeyRound className="size-4" /> Password reset requests ({reqs.length})
+      </p>
+      <div className="mt-3 grid gap-3 lg:grid-cols-2">
+        {reqs.map((r) => (
+          <div key={r.id} className="rounded-xl border border-border p-3 text-sm">
+            <p className="font-display font-bold">{r.phone}</p>
+            {r.note ? <p className="text-xs text-muted-foreground">{r.note}</p> : null}
+            <div className="mt-2 flex gap-2">
+              <Input
+                value={pw[r.id] ?? ""}
+                onChange={(e) => setPw((p) => ({ ...p, [r.id]: e.target.value }))}
+                placeholder="Naya password (min 6)"
+              />
+              <Button
+                size="sm"
+                disabled={busy === r.id}
+                onClick={() => void apply(r.id, r.phone)}
+              >
+                Set
+              </Button>
+              <Button size="sm" variant="outline" asChild>
+                <a
+                  href={`https://wa.me/91${normalizePhone(r.phone)}?text=${encodeURIComponent(
+                    `Namaste! Aapka Mannu A2Z Mart ka naya password: ${pw[r.id] ?? ""}`,
+                  )}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <MessageCircle className="size-4" />
+                </a>
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </AdminCard>
   );
 }
