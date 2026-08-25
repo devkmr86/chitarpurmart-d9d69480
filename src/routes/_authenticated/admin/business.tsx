@@ -162,42 +162,8 @@ function BusinessCenter() {
     void qc.invalidateQueries({ queryKey: ["business-settings"] });
   }
 
-  async function decide(id: string, approve: boolean) {
-    try {
-      await review({ data: { requestId: id, approve } });
-      toast.success(approve ? "Store approve ho gayi" : "Application reject ho gayi");
-      void qc.invalidateQueries({ queryKey: ["admin-pending-sellers"] });
-      void qc.invalidateQueries({ queryKey: ["admin-store-verification"] });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed");
-    }
-  }
 
-  async function toggleVerified(id: string, v: boolean) {
-    const { error } = await supabase.from("stores").update({ is_verified: v }).eq("id", id);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    void logAdminAction(v ? "VERIFY" : "UNVERIFY", "stores", id, {});
-    void qc.invalidateQueries({ queryKey: ["admin-store-verification"] });
-  }
 
-  async function saveRules(
-    id: string,
-    allowed: string[],
-    attributes: Record<string, boolean>,
-  ) {
-    const { error } = await supabase
-      .from("categories")
-      .update({ allowed_units: allowed as never, attributes: attributes as never })
-      .eq("id", id);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    void qc.invalidateQueries({ queryKey: ["admin-category-rules"] });
-  }
 
   const set = (k: keyof Form, v: string | null) => setForm((f) => ({ ...f, [k]: v }));
 
