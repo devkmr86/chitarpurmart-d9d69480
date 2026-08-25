@@ -496,3 +496,56 @@ export const requestStorePayout = createServerFn({ method: "POST" })
     });
     return { ok: true, amount: net };
   });
+
+/** Admin sets a new password for a phone-only account after a reset request. */
+export const adminResetUserPassword = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        requestId: z.string().uuid(),
+        newPassword: z.string().min(6).max(72),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: isAdmin } = await supabase.rpc("is_admin");
+    if (!isAdmin) throw new Error("Forbidden");
+
+    const { data: req } = await supabase
+      .from("password_reset_requests")
+      .select("id,phone,user_id,status")
+      .eq("id", data.requestId)
+      .maybeSingle();
+    if (!req) throw new Error("Request not found");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    let userId = req.user_id;
+    if (!userId) {
+      const { data: prof } = await supabaseAdmin
+        .from("profiles")
+        .select("id")
+        .eq("phone", req.phone)
+        .maybeSingle();
+      userId = prof?.id ?? null;
+    }
+    if (!userId) throw new Error("Is number ka koi account nahi mila");
+
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+      password: data.newPassword,
+    });
+    if (error) throw new Error(error.message);
+
+    await supabaseAdmin
+      .from("password_reset_requests")
+      .update({
+        status: "DONE",
+        handled_by: context.userId,
+        handled_at: new Date().toISOString(),
+      })
+      .eq("id", req.id);
+
+    return { ok: true, phone: req.phone };
+  });
